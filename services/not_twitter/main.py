@@ -13,11 +13,6 @@ app = Flask(__name__)
 def hello_world():
     return 'Hello, World!'
 
-@app.route('/check')
-def return_html():
-    link = request.args.get('link')
-    return f"your link:\n{urllib.request.urlopen(link).read()}"
-
 @app.route('/upload_by_link', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':

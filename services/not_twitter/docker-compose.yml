@@ -1,0 +1,10 @@
+version: '2'
+
+services:
+  not_twitter:
+    build: ./
+    working_dir: /services/not_twitter
+    container_name: not_twitter
+    restart: "always"
+    ports:
+      - "3113:3113"
