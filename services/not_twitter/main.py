@@ -5,6 +5,7 @@ from flask import Flask, flash, request, redirect, url_for, send_from_directory,
 from werkzeug.utils import secure_filename
 import user_model
 from helpers import *
+import redis_controller
 
 UPLOAD_FOLDER = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
 #UPLOAD_FOLDER = '/services/not_twitter'
@@ -22,10 +23,12 @@ def upload_file():
     if request.method == 'POST':
         link = request.form['link']
         file_resp = urllib.request.urlopen(link)
-        print(file_resp)
         file_bytes = file_resp.read(MAX_FILESIZE)
         if file_bytes:
-            username = session['user']
+            cookie = session["user"]
+            #print("cookie is", cookie, flush=True)
+            username = redis_controller.get_username_by_cookie(cookie)
+            #print(cookie, username, flush=True)
             filename = username + '_' + secrets.token_hex(10) + '.txt'
             with open(os.path.join(UPLOAD_FOLDER, filename), 'wb+') as f:
                 f.write(file_bytes)
@@ -40,14 +43,21 @@ def login():
         login = request.form['login']
         password = request.form['password']
         print(login, password)
-        #user = user_model.User(login, password)
-        session['user'] = login
-        return redirect(url_for('upload_file'))
+        try:
+            user = user_model.User(login, password)
+            print(f"login {user}", flush=True)
+            session['user'] = user.cookie
+            redis_controller.add_to_store(login, session['user'])
+            return redirect(url_for('upload_file'))
+        except ValueError:
+            return "Invalid username", 403
     return render_template('login.html')
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    username = session['user']
+    cookie = session['user']
+    username = redis_controller.get_username_by_cookie(cookie)
+    print(username)  
     if filename.split('_')[0]==username:
         return send_from_directory(UPLOAD_FOLDER, filename)
     else:
