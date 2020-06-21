@@ -4,10 +4,10 @@ import secrets
 from flask import Flask, flash, request, redirect, url_for, send_from_directory, render_template, session, send_file
 from werkzeug.utils import secure_filename
 import user_model
+from helpers import *
 
-
-#UPLOAD_FOLDER = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
-UPLOAD_FOLDER = '/services/not_twitter'
+UPLOAD_FOLDER = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
+#UPLOAD_FOLDER = '/services/not_twitter'
 MAX_FILESIZE = 1024
 
 app = Flask(__name__)
@@ -52,6 +52,13 @@ def uploaded_file(filename):
         return send_from_directory(UPLOAD_FOLDER, filename)
     else:
         return "Not yours", 403
+
+@app.route('/uploads/')
+def file_listing():
+    files = get_only_new_files()
+    print(files)
+    files_str = [f"{x.user}: {x.filename}" for x in get_only_new_files()]
+    return '\n'.join(files_str)
 
 if __name__ == "__main__":
     app.run(debug=True, port = 5000)
