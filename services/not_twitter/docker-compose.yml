@@ -12,7 +12,7 @@ services:
       - redis-network
     environment:
       - REDIS_HOST=gredis
-      - UPLOAD_FOLDER = '/services/not_twitter/uploads'
+      - UPLOAD_FOLDER=/services/not_twitter/uploads
 
   redis:
     image: redis
