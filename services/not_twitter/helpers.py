@@ -1,6 +1,7 @@
-from main import UPLOAD_FOLDER
 import os
 
+default_upload_folder = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
+UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", default_upload_folder)
 
 class File():
     def __init__(self, phisical_filename):

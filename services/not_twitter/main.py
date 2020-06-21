@@ -7,8 +7,8 @@ import user_model
 from helpers import *
 import redis_controller
 
-UPLOAD_FOLDER = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
-#UPLOAD_FOLDER = '/services/not_twitter'
+default_upload_folder = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
+UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", default_upload_folder)
 MAX_FILESIZE = 1024
 
 app = Flask(__name__)

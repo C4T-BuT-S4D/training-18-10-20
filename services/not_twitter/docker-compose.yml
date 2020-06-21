@@ -8,3 +8,19 @@ services:
     restart: "always"
     ports:
       - "3113:3113"
+    networks:
+      - redis-network
+    environment:
+      - REDIS_HOST=gredis
+      - UPLOAD_FOLDER = '/services/not_twitter/uploads'
+
+  redis:
+    image: redis
+    container_name: gredis
+    networks:
+      - redis-network
+    restart: "always"
+
+networks:
+  redis-network:
+    driver: bridge
