@@ -1,0 +1,9 @@
+<html>
+<meta charset='utf-8'>
+<h1><strong>Files on server</strong></h1>
+<body>
+    {% for file in files %}
+    <div class="filenames">{{file.user}}: {{ file.filename }}</div>
+    {% endfor %}
+</body>
+</html>

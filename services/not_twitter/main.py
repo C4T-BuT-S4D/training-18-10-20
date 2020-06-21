@@ -55,10 +55,9 @@ def uploaded_file(filename):
 
 @app.route('/uploads/')
 def file_listing():
-    files = get_only_new_files()
+    files = listdir_fileclass()
     print(files)
-    files_str = [f"{x.user}: {x.filename}" for x in get_only_new_files()]
-    return '\n'.join(files_str)
+    return render_template('uploads.html', files=files)
 
 if __name__ == "__main__":
     app.run(debug=True, port = 5000)
