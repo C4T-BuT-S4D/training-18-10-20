@@ -18,3 +18,12 @@ class User:
             return True
         else:
             return False
+
+
+def check_auth(session_user_cookie):
+    try:
+        if redis_controller.get_username_by_cookie(session_user_cookie) is not None:
+            return True
+        return False
+    except KeyError:
+        return False

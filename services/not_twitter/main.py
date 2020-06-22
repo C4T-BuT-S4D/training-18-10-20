@@ -3,6 +3,7 @@ import os
 import secrets
 from flask import Flask, flash, request, redirect, url_for, send_from_directory, render_template, session, send_file
 from werkzeug.utils import secure_filename
+from functools import wraps
 import user_model
 from helpers import *
 import redis_controller
@@ -14,18 +15,30 @@ MAX_FILESIZE = 1024
 app = Flask(__name__)
 app.secret_key = "useless_key"
 
+def check_auth():
+    try:
+        cookie = session["user"]
+        if not user_model.check_auth(cookie):
+            return False
+        return True
+    except KeyError:
+        return False
+
 @app.route('/')
 def hello_world():
     return 'Hello, World!'
 
 @app.route('/upload_by_link', methods=['GET', 'POST'])
 def upload_file():
+    if not check_auth():
+        return redirect(url_for('login'))
     if request.method == 'POST':
         link = request.form['link']
         file_resp = urllib.request.urlopen(link)
         file_bytes = file_resp.read(MAX_FILESIZE)
         if file_bytes:
             cookie = session["user"]
+            user_model.check_auth(cookie)
             #print("cookie is", cookie, flush=True)
             username = redis_controller.get_username_by_cookie(cookie)
             #print(cookie, username, flush=True)
@@ -55,6 +68,8 @@ def login():
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
+    if not check_auth():
+        return redirect(url_for('login'))
     cookie = session['user']
     username = redis_controller.get_username_by_cookie(cookie)
     print(username)  
