@@ -27,7 +27,7 @@ def check_auth():
 
 @app.route('/')
 def hello_world():
-    with DatabaseClient as d:
+    with DatabaseClient() as d:
         return d.test()
 
 @app.route('/upload_by_link', methods=['GET', 'POST'])

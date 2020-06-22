@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:11
     ports:
-      - 5432:5432
+      - 54320:54320
     environment:
         - POSTGRES_PASSWORD=postgres
         - POSTGRES_DB=postgres
@@ -13,17 +13,20 @@ services:
         - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: on-failure:3
     networks:
-        default:
+        - default
 
   not_twitter:
     build: ./
     working_dir: /services/not_twitter
     container_name: not_twitter
     restart: "always"
+    depends_on:
+             - postgres
     ports:
       - "3113:3113"
     networks:
       - redis-network
+      - default
     environment:
       - REDIS_HOST=gredis
       - UPLOAD_FOLDER=/services/not_twitter/uploads

@@ -7,7 +7,7 @@ class DatabaseClient:
 
     def __enter__(self):
         self.conn = psycopg2.connect(dbname='postgres', user='postgres',
-                                     password='postgres', host='postgres')
+                                     password='postgres', host='postgres', port = 5432)
         self.cursor = self.conn.cursor()
         return self
 
@@ -17,8 +17,8 @@ class DatabaseClient:
     
     def test(self):
         values = ['test', 'test']
-        insert = sql.SQL('insert into users (login, password_hash) values {}').format(sql.SQL(',').join(map(sql.Literal, values)))
+        insert = sql.SQL("INSERT INTO users VALUES ('test', 'test')")
         self.cursor.execute(insert)
         self.cursor.execute("select * from users;")
         records = self.cursor.fetchall()
-        return records
+        return str(records)
