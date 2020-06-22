@@ -1,6 +1,20 @@
 version: '2'
 
 services:
+  postgres:
+    image: postgres:11
+    ports:
+      - 5432:5432
+    environment:
+        - POSTGRES_PASSWORD=postgres
+        - POSTGRES_DB=postgres
+        - POSTGRES_USER=postgres
+    volumes:
+        - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: on-failure:3
+    networks:
+        default:
+
   not_twitter:
     build: ./
     working_dir: /services/not_twitter
@@ -22,5 +36,6 @@ services:
     restart: "always"
 
 networks:
+  default:
   redis-network:
     driver: bridge
