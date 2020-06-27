@@ -61,17 +61,33 @@ def login():
             user = user_model.User(login, password)
             print(f"login {user}", flush=True)
             with database_controller.DatabaseClient() as db:
-                db.add_user(user)
-            with database_controller.DatabaseClient() as db:
                 print(db.get_all_users())
-                if db.check_user(user):
-                    print("success")
+                if not db.check_user(user):
+                    return "Where is no such user in db", 400
             session['user'] = user.cookie
             redis_controller.add_to_store(login, session['user'])
             return redirect(url_for('upload_file'))
         except ValueError:
             return "Invalid username", 403
     return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        login = request.form['login']
+        password = request.form['password']
+        print(login, password)
+        try:
+            user = user_model.User(login, password)
+            print(f"login {user}", flush=True)
+            with database_controller.DatabaseClient() as db:
+                db.add_user(user)
+            session['user'] = user.cookie
+            redis_controller.add_to_store(login, session['user'])
+            return redirect(url_for('upload_file'))
+        except ValueError:
+            return "Invalid username", 403
+    return render_template('register.html')
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
