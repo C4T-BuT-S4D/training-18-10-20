@@ -1,5 +1,7 @@
 import psycopg2
 from psycopg2 import sql
+from hashlib import md5
+import user_model
 
 class DatabaseClient:
     def __init__(self):
@@ -15,10 +17,21 @@ class DatabaseClient:
         if self.cursor:
             self.conn.close()
     
-    def test(self):
-        values = ['test', 'test']
-        insert = sql.SQL("INSERT INTO users VALUES ('test', 'test')")
-        self.cursor.execute(insert)
-        self.cursor.execute("select * from users;")
-        records = self.cursor.fetchall()
-        return str(records)
+    def check_user(self, user):
+        self.cursor.execute('select * from users where login = %s', (user.login, ))
+        u = self.cursor.fetchone()
+        print(u, user.password_hash)
+        if u is None or u[1] != user.password_hash:
+            return False
+        else:
+            return True
+    
+    def add_user(self, user):
+        self.cursor.execute("INSERT INTO users (login, password_hash) VALUES(%s, %s)", (user.login, user.password_hash))
+        self.conn.commit()
+
+    def get_all_users(self):
+        self.cursor.execute('select * from users')
+        u = self.cursor.fetchall()
+        return u
+

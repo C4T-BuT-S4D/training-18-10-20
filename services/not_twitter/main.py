@@ -7,7 +7,7 @@ from functools import wraps
 import user_model
 from helpers import *
 import redis_controller
-from database_controller import DatabaseClient
+import database_controller
 
 default_upload_folder = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
 UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", default_upload_folder)
@@ -27,8 +27,7 @@ def check_auth():
 
 @app.route('/')
 def hello_world():
-    with DatabaseClient() as d:
-        return d.test()
+    return "<#"
 
 @app.route('/upload_by_link', methods=['GET', 'POST'])
 def upload_file():
@@ -61,6 +60,12 @@ def login():
         try:
             user = user_model.User(login, password)
             print(f"login {user}", flush=True)
+            with database_controller.DatabaseClient() as db:
+                db.add_user(user)
+            with database_controller.DatabaseClient() as db:
+                print(db.get_all_users())
+                if db.check_user(user):
+                    print("success")
             session['user'] = user.cookie
             redis_controller.add_to_store(login, session['user'])
             return redirect(url_for('upload_file'))
