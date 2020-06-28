@@ -9,7 +9,7 @@ class DatabaseClient:
 
     def __enter__(self):
         self.conn = psycopg2.connect(dbname='postgres', user='postgres',
-                                     password='postgres', host='postgres', port = 5432)
+                                     password='postgres', host='postgres')
         self.cursor = self.conn.cursor()
         return self
 
