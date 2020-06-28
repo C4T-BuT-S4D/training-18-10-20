@@ -19,6 +19,7 @@ app.secret_key = "useless_key"
 def check_auth():
     try:
         cookie = session["user"]
+        print(f"cookie is {cookie}")
         if not user_model.check_auth(cookie):
             return False
         return True

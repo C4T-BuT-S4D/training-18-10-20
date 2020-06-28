@@ -27,3 +27,5 @@ def check_auth(session_user_cookie):
         return False
     except KeyError:
         return False
+    except AttributeError:
+        return False
