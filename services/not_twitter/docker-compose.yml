@@ -17,6 +17,8 @@ services:
 
   not_twitter:
     build: ./
+    volumes:
+      - ./uploads/:/services/not_twitter/uploads
     working_dir: /services/not_twitter
     container_name: not_twitter
     restart: "always"
