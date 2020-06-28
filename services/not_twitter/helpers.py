@@ -3,7 +3,7 @@ from pathlib import Path
 
 default_upload_folder = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
 UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", default_upload_folder)
-MAX_FILE_COUNT_IN_LISTING = 1024
+MAX_FILE_COUNT_IN_LISTING = 128
 
 class File():
     def __init__(self, phisical_filename):
@@ -19,7 +19,7 @@ class File():
 def listdir_fileclass():
     ans = []
     filenames = sorted(Path(UPLOAD_FOLDER).iterdir(), key=os.path.getmtime)
-    for fn in reversed(filenames):
+    for fn in list(reversed(filenames))[:MAX_FILE_COUNT_IN_LISTING]:
         try:
             ans.append(File(fn))
         except IndexError:
