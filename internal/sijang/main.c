@@ -429,7 +429,7 @@ void set_weapon( void )
 			g_user->weapons[ weapon_id ]->is_seted = TRUE;
 			g_user->is_weapon_set = TRUE;
 
-			remove_weapon( weapon_id );
+			remove_weapon_by_id( weapon_id );
 
 			printf( "[+] You set %s as your main weapon!\n", 
 				g_user->current_weapon->name );
@@ -476,21 +476,152 @@ void add_to_market_thr( weapon* wp, int m_cost, int u_cost )
 	args->owner = g_user->name;
 
 	pthread_create( &tid, &attr, add_to_market_hndl, (void*)args );
-
-	//pthread_join( tid, NULL );
-	puts( "[+] Item is added to market!" ); 
 };
 
 void* add_to_market_hndl( void* args )
 {
-	// todo
-	// add_to_market_args* l_args = (add_to_market_args*) args;
-	// sleep( 3 );
-	// //puts( "exit from thread!" );
-	// pthread_exit( 0 );
+	add_to_market_args* l_args = (add_to_market_args*) args;
+
+	// try to connect to sever
+	int market_fd = connect_to_market();
+
+	if ( market_fd == -1 )
+	{
+		puts( "[-] Item is not added to market!" );
+		pthread_exit( 0 );
+	}
+
+	// try to lock access to market
+	int status = request_to_add_item( market_fd );
+	int tries = 0;
+
+	// wait if market is busy
+	if ( status == MARKET_BUSY )
+	{	// wait 2.5 sec
+		while ( 1 && tries != 5 )
+		{
+			usleep( 500000 ); // 1000000 microsec == 1 sec 
+			status = request_to_add_item( market_fd );
+			
+			if ( status == MARKET_ACCESS )
+				break;
+			tries++;
+		}
+	}
+
+	// check if we can get access
+	if ( status != MARKET_ACCESS )
+	{
+		puts( "[-] Market is busy now, try to wait some time!" );
+		pthread_exit( 0 );
+	}
+
+	// create market item struct and fill it
+	char* desc = l_args->wp->description;
+	char* name = l_args->wp->name;
+	DWORD quality = l_args->wp->quality;
+
+	#ifdef DEBUG
+		printf( "l_args->wp = %p\n", l_args->wp );
+	#endif
+
+	free_mem( l_args->wp );
+	
+	market_item* new_item = (market_item*) alloc_mem( sizeof( market_item ) );	
+
+	#ifdef DEBUG
+		printf( "new_item = %p\n", new_item );
+	#endif
+
+	new_item->name = name;
+	new_item->owner = g_user->name;
+	new_item->desc = desc;
+	new_item->cost = l_args->m_cost;
+	new_item->quality = quality;
+
+	// convert market_item to request string
+	BYTE* req_packet = market_item2request( new_item );
+
+	if ( req_packet == NULL )
+	{
+		perror( "[-] Invalid request packet!" );
+		exit( INVALID_REQUEST_PACKET );
+	} 
+
+	// send add request
+	status = send_req( market_fd, req_packet ); // custom send function
+
+	// check request status
+	if ( status == MARKET_ITEM_ADDED )
+	{	
+		// add coins and delete weapon from weapon list
+		g_user->coins += l_args->u_cost;
+		remove_weapon( name, quality );
+		puts( "[+] Item is added to market!" );
+	}
+	else if ( status == MARKET_ITEM_NOT_ADDED )
+	{
+		puts( "[-] Item not added to market!" );
+		pthread_exit( 0 );
+	}
+	else
+	{
+		printf( "[-] Error in market add iteam request, errno = %d\n", status );
+		pthread_exit( 0 );
+	}
+
+	pthread_exit( 0 );
 };
 
-void remove_weapon( int id )
+int request_to_add_item( int fd )
+{
+	return MARKET_BUSY;
+};
+
+BYTE* market_item2request( market_item* itm )
+{
+	return NULL;
+};
+
+int send_req( int fd, BYTE* packet )
+{
+	return MARKET_ITEM_ADDED;
+};
+
+int connect_to_market( void )
+{
+	int fd = socket( AF_INET, SOCK_STREAM, 0 );
+
+	if ( fd == -1 )
+	{
+		perror( "[-] Socket creation error!" );
+		exit( SOCKET_CREATE_ERROR );
+	}
+
+	struct sockaddr_in address;
+	memset( &address, 0, sizeof( address ) );
+
+	address.sin_family = AF_INET;
+	address.sin_port = htons( MARKET_PORT );
+	address.sin_addr.s_addr = INADDR_ANY;
+
+	int error = connect( fd, 
+		(struct sockaddr *)&address, 
+		sizeof( address ) 
+	);
+
+	if ( error == -1 )
+	{
+		perror( "[-] Market connection error!" );
+		close( fd );
+		return -1;
+	}
+
+	return fd;
+};
+
+
+void remove_weapon_by_id( int id )
 {
 	if ( g_user->weapons[ id ] != NULL )
 	{
@@ -504,6 +635,40 @@ void remove_weapon( int id )
 	else
 	{
 		printf( "[-] Weapon with id %d is not exist!\n", id );
+	}
+};
+
+void remove_weapon( char* name, DWORD quality )
+{
+	if ( g_user->weapon_count == 0 )
+	{
+		puts( "[-] You don't have weapons!" );
+	}
+
+	int removed_id = -1;
+
+	for ( int i = 0; g_user->weapons[ i ] != NULL; i++ )
+	{
+		if ( strcmp( g_user->weapons[ i ]->name, name ) && 
+			g_user->weapons[ i ]->quality == quality )
+		{
+			removed_id = i;
+			break;
+		}
+	}
+
+	if ( removed_id == -1 )
+	{
+		puts( "[-] Weapon not found!" );
+	}
+	else
+	{
+		g_user->weapon_count--;
+
+		for ( int i = removed_id; g_user->weapons[ i ] != NULL; i++ )
+		{
+			g_user->weapons[ i ] = g_user->weapons[ i + 1 ];
+		}
 	}
 };
 

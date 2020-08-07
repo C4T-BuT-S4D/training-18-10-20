@@ -5,7 +5,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
-
+#include <netinet/in.h>
 #include <malloc.h>
 
 typedef unsigned int DWORD;
@@ -26,6 +26,7 @@ typedef unsigned char BYTE;
 #define DEFAULT_COINS_COUNT 512
 #define SOUL_DESC_SIZE 256
 #define WORD_MAX 0xffff
+#define MARKET_PORT 9999
 
 #define FALSE 0 
 #define TRUE 1
@@ -38,6 +39,8 @@ typedef unsigned char BYTE;
 #define FILE_OPEN_TO_READ_ERROR -5
 #define INVALID_WEAPON_STRUCT -6
 #define INVALID_WEAPON_STRING -7
+#define SOCKET_CREATE_ERROR -8
+#define INVALID_REQUEST_PACKET -9
 #define NORMAL_EXIT 0
 
 // options
@@ -49,11 +52,16 @@ enum USER_MENU_OPTIONS { EMPTRY, VIEW_PROFILE, BUY_WEAPON,
 	SELL_WEAPON, SET_WEAPON, UNSET_WEAPON, USER_EXIT 
 };
 
+enum MARKET_CODES { MARKET_BUSY, MARKET_ACCESS, MARKET_ITEM_ADDED,
+	MARKET_ITEM_NOT_ADDED 
+};
+
+// 21 byte
 typedef struct {
-	DWORD quality;
-	char* name;
-	char* description;
-	BYTE is_seted;
+	char* name; // +0
+	char* description; // + 8
+	DWORD quality; // +16
+	BYTE is_seted; // +20
 } weapon;
 
 typedef struct {
@@ -66,10 +74,6 @@ typedef struct {
 	weapon* current_weapon;
 } user;
 
-// a->fd -> b->fd -> c 
-// a->fd -> c -> null
-// a->fd ->
-
 typedef struct {
 	weapon* wp;
 	int m_cost;
@@ -77,19 +81,24 @@ typedef struct {
 	char* owner;
 } add_to_market_args;
 
+// 32 bytes
 typedef struct {
-	BYTE owner[ 32 ];
-	DWORD cost;
-	DWORD quality;
-	BYTE desc[ 64 ];
-	size_t timestamp;
-} market_entry;
+	char* name; // +0
+	char* owner; // +8
+	char* desc; // +16
+	DWORD cost; // +24
+	DWORD quality; // +28
+} market_item;
 
-typedef struct {
-	BYTE lock;
-	DWORD size;
-	market_entry** items;
-} market;
+// reg login
+int init_user( char* );
+int login( void );
+int reg( void );
+void reg_user( char*, char* );
+int user_session( void );
+
+void read_password( char*, char* );
+int check_password( char*, char* );
 
 // utils
 void setup( void );
@@ -100,33 +109,41 @@ void free_mem( void* );
 void sanitize( char* );
 char** get_file_lines( char* );
 char* get_user_filename( char* );
-void print_menu( void );
 int find_userfile( char* );
 int read_coins( char* );
 
+// rand utils 
 BYTE rand8( void );
 WORD rand16( void );
 DWORD rand32( void );
 
+// menu
+void print_menu( void );
+void print_user_menu( void );
+
 // user utils
-void read_password( char*, char* );
-int check_password( char*, char* );
-int init_user( char* );
-void reg_user( char*, char* );
-int login( void );
-int user_session( void );
-int reg( void );
 weapon* get_random_weapon( void );
 BYTE* weapon2str( weapon* wp );
 void parse_weapon_line( weapon* , char* );
-void add_to_market_thr( weapon*, int, int );
-void* add_to_market_hndl( void* args );
+void remove_weapon_by_id( int );
+void remove_weapon( char*, DWORD );
+
+void add_weapon( weapon* );
 
 // user menu funcs
 void view_profile( void );
 void set_weapon( void );
 void unset_weapon( void );
 void sell_weapon( void );
+
+// market functions
+int connect_to_market( void );
+BYTE* market_item2request( market_item* );
+int request_to_add_item( int );
+int send_req( int, BYTE* );
+void add_to_market_thr( weapon*, int, int );
+void* add_to_market_hndl( void* args );
+
 
 char banner[] =
 " _______ __________________ _______  _        _______ \n"\
