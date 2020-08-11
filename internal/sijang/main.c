@@ -388,10 +388,10 @@ void sell_weapon( void )
 
 				if ( choice[ 0 ] == 'y' )
 				{
-					char* desc = (char*) alloc_mem( DEFUALT_BUF_SIZE );
+					char* desc = (char*) alloc_mem( DESCRIPTION_SIZE );
 					printf( "[?] Enter description: " );
 
-					read_buf( desc, DEFUALT_BUF_SIZE );
+					read_buf( desc, DESCRIPTION_SIZE );
 					wp->description = desc;
 				}
 
@@ -498,9 +498,9 @@ void* add_to_market_hndl( void* args )
 	// wait if market is busy
 	if ( status == MARKET_BUSY )
 	{	// wait 2.5 sec
-		while ( 1 && tries != 5 )
+		while ( TRUE && tries != SLEEP_TRIES )
 		{
-			usleep( 500000 ); // 1000000 microsec == 1 sec 
+			usleep( SLEEP_TIME ); // 1000000 microsec == 1 sec 
 			status = request_to_add_item( market_fd );
 			
 			if ( status == MARKET_ACCESS )
@@ -575,12 +575,77 @@ void* add_to_market_hndl( void* args )
 
 int request_to_add_item( int fd )
 {
+	char* req_packet = (char*) alloc_mem( REQ_TO_ADD_PACKET_SIZE );
+	strncpy( req_packet, g_user->name, strlen( g_user->name ) );
+	strcat( req_packet, "|add_item" );
+	size_t packet_size = (size_t) strlen( req_packet );
+
+	#ifdef DEBUG
+		printf( "req_packet = %s\n", req_packet );
+	#endif
+
+	int nbytes = send( fd, (void*) req_packet, packet_size, 0 );
+
+	// try to resend part of packet
+	if ( nbytes != packet_size && nbytes > 0 )
+	{
+		int pad = send( fd, (void*)( req_packet + nbytes ), 
+			packet_size - nbytes, 0 );
+		free_mem( req_packet );
+		if ( ( pad + nbytes ) != packet_size )
+		{
+			perror( "[-] Some error in market server communication!" );
+			exit( MARKET_SEND_REQ_ERROR );		
+		}
+	}
+	else
+	{
+		perror( "[-] Some error in market server communication!" );
+		exit( MARKET_SEND_REQ_ERROR );
+	}
+
+	free_mem( req_packet );
 	return MARKET_BUSY;
 };
 
 BYTE* market_item2request( market_item* itm )
 {
-	return NULL;
+	if ( itm == NULL )
+	{
+		perror( "[-] Iterm pointer is NULL!" );
+		exit( INVALID_ITEM_POINTER );
+	}
+
+	// max possible size = 148
+	BYTE* req_packet = (BYTE*) alloc_mem( MARKET_ITEM_SIZE );
+
+	strncpy( req_packet, "add_to_market|", strlen( "add_to_market|" ) );
+
+	strcat( req_packet, itm->name );
+	strcat( req_packet, "|" );
+	
+	strcat( req_packet, itm->desc );
+	strcat( req_packet, "|" );
+		
+	char* tmp_buf = (char*) alloc_mem( DEFUALT_BUF_SIZE );
+	sprintf( tmp_buf, "%d", itm->cost );
+
+	strcat( req_packet, tmp_buf );
+	strcat( req_packet, "|" );
+	
+	free_mem( tmp_buf );
+	tmp_buf = (char*) alloc_mem( DEFUALT_BUF_SIZE );
+	sprintf( tmp_buf, "%d", itm->quality );	
+
+	strcat( req_packet, tmp_buf );
+	strcat( req_packet, "|" );
+	
+	free_mem( tmp_buf );
+
+	strcat( req_packet, itm->owner );
+	strcat( req_packet, "|" );
+
+	return req_packet;
 };
 
 int send_req( int fd, BYTE* packet )
@@ -619,7 +684,6 @@ int connect_to_market( void )
 
 	return fd;
 };
-
 
 void remove_weapon_by_id( int id )
 {

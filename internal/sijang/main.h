@@ -19,14 +19,18 @@ typedef unsigned char BYTE;
 
 // some const
 #define DEFAULT_ALARM_TIME 120
-#define USERNAME_SIZE 128
-#define PASSWORD_SIZE 256
+#define USERNAME_SIZE 32
+#define PASSWORD_SIZE 64
 #define FILENAME_SIZE 512
 #define DEFUALT_BUF_SIZE 1024
 #define DEFAULT_COINS_COUNT 512
-#define SOUL_DESC_SIZE 256
+#define REQ_TO_ADD_PACKET_SIZE 128
+#define DESCRIPTION_SIZE 64
+#define MARKET_ITEM_SIZE 256
 #define WORD_MAX 0xffff
 #define MARKET_PORT 9999
+#define SLEEP_TIME 500000
+#define SLEEP_TRIES 5
 
 #define FALSE 0 
 #define TRUE 1
@@ -41,6 +45,8 @@ typedef unsigned char BYTE;
 #define INVALID_WEAPON_STRING -7
 #define SOCKET_CREATE_ERROR -8
 #define INVALID_REQUEST_PACKET -9
+#define MARKET_SEND_REQ_ERROR -10
+#define INVALID_ITEM_POINTER -11
 #define NORMAL_EXIT 0
 
 // options
