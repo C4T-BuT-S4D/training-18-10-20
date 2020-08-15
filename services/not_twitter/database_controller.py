@@ -26,7 +26,18 @@ class DatabaseClient:
         else:
             return True
     
+    def check_username(self, username):
+        self.cursor.execute('select * from users where login = %s', (username, ))
+        u = self.cursor.fetchone()
+        print(u)
+        if u is None:
+            return True
+        else:
+            return False
+        
     def add_user(self, user):
+        if not self.check_username(user.login):
+            raise ValueError
         self.cursor.execute("INSERT INTO users (login, password_hash) VALUES(%s, %s)", (user.login, user.password_hash))
         self.conn.commit()
 
