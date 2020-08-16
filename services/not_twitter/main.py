@@ -52,6 +52,26 @@ def upload_file():
             return "no file"
     return render_template('upload_get.html')
 
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_text():
+    if not check_auth():
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        text = request.form['text']
+        if text:
+            cookie = session["user"]
+            user_model.check_auth(cookie)
+            #print("cookie is", cookie, flush=True)
+            username = redis_controller.get_username_by_cookie(cookie)
+            #print(cookie, username, flush=True)
+            filename = username + '_' + secrets.token_hex(10) + '.txt'
+            with open(os.path.join(UPLOAD_FOLDER, filename), 'w+') as f:
+                f.write(text)
+            return f"your file uploaded to 'uploads/{filename}'"
+        else:
+            return "no file"
+    return render_template('upload_get_text.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
