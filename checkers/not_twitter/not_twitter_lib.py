@@ -24,12 +24,12 @@ class CheckMachine:
         self.c = checker
         self.port = PORT
     
-    def register(self, session, username, password):
+    def register(self, session, username, password, status=Status.MUMBLE):
         r = session.post(self.url + '/register', data = {'login':username, 'password': password})
         #self.c.assert_eq(200, r.status_code, "Can't register")
         print(r.status_code)
 
-    def login(self, session, username, password):
+    def login(self, session, username, password, status=Status.MUMBLE):
         r = session.post(self.url + '/login', data = {'login':username, 'password': password})
         #self.c.assert_eq(200, r.status_code, "Can't login")
         print(r.status_code)
@@ -43,7 +43,7 @@ class CheckMachine:
         new_link = new_filename_link.findall(r.text)[0]
         return new_link
     
-    def _upload_text(self, session, text):
+    def upload_text(self, session, text):
         """
         return filename of uploaded file
         """
@@ -58,8 +58,13 @@ class CheckMachine:
         return file content
         """
         return session.get(self.url + '/' + link).text
+    
+    def check_file_content_by_link(self, session, link, expected_content, status = Status.MUMBLE):
+        file_content = self._download_file_by_link(session, link)
+        #self.c.assert_eq(file_content, expected_content, "Can't upload text", status=status)
+        print(file_content == expected_content, file_content, expected_content)
 
-    def check_upload_by_link(self, session, link):
+    def check_upload_by_link(self, session, link, status=Status.MUMBLE):
         link_content = urllib.request.urlopen(link).read(MAX_FILESIZE).decode('utf-8')
         server_link = self._upload_file_by_link(session, link)
         link_content_on_server = self._download_file_by_link(session, server_link)

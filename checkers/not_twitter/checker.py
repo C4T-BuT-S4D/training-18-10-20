@@ -20,7 +20,7 @@ class Checker(BaseChecker):
 
     def check(self):
         login = secrets.token_hex(10)
-        password = login
+        password = secrets.token_hex(10)
         s = requests.Session()
         #check register
         self.mch.register(s, login, password)
@@ -28,17 +28,31 @@ class Checker(BaseChecker):
         self.mch.login(s, login, password)
         #check upload by http link
         self.mch.check_upload_by_link(s, "http://example.com")
-        self.cquit(Status.OK)
+        #self.cquit(Status.OK)
+        #check uploads page
     
-    def put(self, *_args, **_kwargs):
-        raise NotImplementedError('You must implement this method')
+    def put(self, flag_id, flag, vuln):
+        login = secrets.token_hex(10)
+        password = secrets.token_hex(10)
+        s = requests.Session()
+        self.mch.register(s, login, password)
+        self.mch.login(s, login, password)
+        link = self.mch.upload_text(s, flag)
+        #self.cquit(Status.OK, f'{login}', f'{login}:{password}:{link}')
+        return f'{login}:{password}:{link}'
 
     def get(self, flag_id, flag, vuln):
-        self.cquit(Status.OK)
+        s = requests.Session()
+        u, p, link = flag_id.split(':')
+        self.mch.login(s, u, p, Status.CORRUPT)
+        self.mch.check_file_content_by_link(s, link, flag)
+        #self.cquit(Status.OK)
 
 #for testing
 c = Checker("95.182.120.116")
 c.check()
+info = c.put("aa", "i am a flag", 1)
+c.get(info, "i am a flag", 1)
 """
 if __name__ == '__main__':
     c = Checker(sys.argv[2])
