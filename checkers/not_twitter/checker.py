@@ -26,9 +26,9 @@ class Checker(BaseChecker):
         self.mch.register(s, login, password)
         #check login
         self.mch.login(s, login, password)
-        #check upload by http link
+        #check upload by http link (+ get this file ; + it appears in uploads)
         self.mch.check_upload_by_link(s, "http://example.com")
-        #self.cquit(Status.OK)
+        self.cquit(Status.OK)
         #check uploads page
     
     def put(self, flag_id, flag, vuln):
@@ -38,21 +38,19 @@ class Checker(BaseChecker):
         self.mch.register(s, login, password)
         self.mch.login(s, login, password)
         link = self.mch.upload_text(s, flag)
-        #self.cquit(Status.OK, f'{login}', f'{login}:{password}:{link}')
-        return f'{login}:{password}:{link}'
+        self.cquit(Status.OK, f'{login}', f'{login}:{password}:{link}')
+        #return f'{login}:{password}:{link}'
 
     def get(self, flag_id, flag, vuln):
         s = requests.Session()
         u, p, link = flag_id.split(':')
         self.mch.login(s, u, p, Status.CORRUPT)
         self.mch.check_file_content_by_link(s, link, flag)
-        #self.cquit(Status.OK)
+        self.cquit(Status.OK)
 
 #for testing
 c = Checker("95.182.120.116")
 c.check()
-info = c.put("aa", "i am a flag", 1)
-c.get(info, "i am a flag", 1)
 """
 if __name__ == '__main__':
     c = Checker(sys.argv[2])

@@ -70,3 +70,14 @@ class CheckMachine:
         link_content_on_server = self._download_file_by_link(session, server_link)
         #self.c.assert_eq(link_content, link_content_on_server, "Can't upload file by link")
         print(link_content_on_server == link_content)
+        self._check_filename_in_uploads_page(session, server_link)
+    
+    def _get_uploads_list(self, s):
+        uploads_html = s.get(self.url + '/uploads').text
+        files_info = find_fileinfo_regexp.findall(uploads_html)
+        return[f"uploads/{x.split(': ')[0]}_{x.split(': ')[1]}" for x in files_info]
+
+    def _check_filename_in_uploads_page(self, s, filename_link):
+        uploads = self._get_uploads_list(s)
+        #print(uploads, filename_link)
+        print(filename_link in uploads)
