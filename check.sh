@@ -2,13 +2,7 @@
 
 declare -A VULNS
 VULNS=(
-  [grox]=1
-  [ice-and-fire]=1
-  [martian]=2
-  [msp]=2
-  [planetzor]=1
-  [spacesos]=1
-  [exoplanet]=1
+  [not_twitter]=1
 )
 
 if [ -z "$RUNS" ]; then
