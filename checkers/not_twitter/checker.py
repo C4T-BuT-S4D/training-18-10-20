@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from not_twitter_lib import CheckMachine
 from checklib import BaseChecker, Status, get_initialized_session
 from checklib import rnd_username, rnd_password
