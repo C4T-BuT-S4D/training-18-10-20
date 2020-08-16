@@ -29,7 +29,6 @@ class Checker(BaseChecker):
         #check upload by http link (+ get this file ; + it appears in uploads)
         self.mch.check_upload_by_link(s, "http://example.com")
         self.cquit(Status.OK)
-        #check uploads page
     
     def put(self, flag_id, flag, vuln):
         login = secrets.token_hex(10)
@@ -39,19 +38,15 @@ class Checker(BaseChecker):
         self.mch.login(s, login, password)
         link = self.mch.upload_text(s, flag)
         self.cquit(Status.OK, f'{login}', f'{login}:{password}:{link}')
-        #return f'{login}:{password}:{link}'
 
     def get(self, flag_id, flag, vuln):
         s = requests.Session()
         u, p, link = flag_id.split(':')
         self.mch.login(s, u, p, Status.CORRUPT)
-        self.mch.check_file_content_by_link(s, link, flag)
+        self.mch.check_file_content_by_link(s, link, flag, Status.CORRUPT)
         self.cquit(Status.OK)
 
-#for testing
-c = Checker("95.182.120.116")
-c.check()
-"""
+
 if __name__ == '__main__':
     c = Checker(sys.argv[2])
 
@@ -59,4 +54,3 @@ if __name__ == '__main__':
         c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
-        """
