@@ -1,5 +1,10 @@
 #!/bin/bash
 
+declare -A VULNS
+VULNS=(
+  [not_twitter]=1
+)
+
 if [ -z "$RUNS" ]; then
   RUNS=10
 fi
@@ -26,7 +31,7 @@ for SERVICE in $SERVICES; do
 
   CHECKER="./checkers/$SERVICE/checker.py"
 
-  echo "Processing checker '$CHECKER', $VULNS vulns"
+  echo "Processing checker '$CHECKER', ${VULNS[$SERVICE]} vulns"
   for ((i = 1; i <= RUNS; i++)); do
     echo "Running test $i..."
 
@@ -42,7 +47,7 @@ for SERVICE in $SERVICES; do
       true
     fi
 
-    for ((j = 1; j <= $VULNS; j++)); do
+    for ((j = 1; j <= ${VULNS[$SERVICE]}; j++)); do
       echo "Testing vuln $j..."
       # shellcheck disable=SC2018
       # shellcheck disable=SC2019
