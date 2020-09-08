@@ -28,7 +28,7 @@ def check_auth():
 
 @app.route('/')
 def hello_world():
-    return "<#"
+    return redirect(url_for('upload_text'))
 
 @app.route('/upload_by_link', methods=['GET', 'POST'])
 def upload_file():
@@ -47,9 +47,9 @@ def upload_file():
             filename = username + '_' + secrets.token_hex(10) + '.txt'
             with open(os.path.join(UPLOAD_FOLDER, filename), 'wb+') as f:
                 f.write(file_bytes)
-            return f"your file uploaded to 'uploads/{filename}'"
+            return f"Ваш фанфик был загружен на 'uploads/{filename}'"
         else:
-            return "no file"
+            return "Пустой файл"
     return render_template('upload_get.html')
 
 @app.route('/upload', methods=['GET', 'POST'])
@@ -67,9 +67,11 @@ def upload_text():
             filename = username + '_' + secrets.token_hex(10) + '.txt'
             with open(os.path.join(UPLOAD_FOLDER, filename), 'w+') as f:
                 f.write(text)
-            return f"your file uploaded to 'uploads/{filename}'"
+            message = f"your file uploaded to 'uploads/{filename}'"
+            return render_template('message.html', message=message)
         else:
-            return "no file"
+            message = "Пустой файл"
+            return render_template('message.html', message=message), 400
     return render_template('upload_get_text.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -84,12 +86,14 @@ def login():
             with database_controller.DatabaseClient() as db:
                 print(db.get_all_users())
                 if not db.check_user(user):
-                    return "Where is no such user in db", 400
+                    message = "Данный пользователь отсутствует в базе данных"
+                    return render_template('message.html', message=message), 400
             session['user'] = user.cookie
             redis_controller.add_to_store(login, session['user'])
-            return redirect(url_for('upload_file'))
+            return redirect(url_for('upload_text'))
         except ValueError:
-            return "Invalid username", 403
+            message= "Некорректное имя пользователя"
+            return render_template('message.html', message=message), 403
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -107,7 +111,8 @@ def register():
             redis_controller.add_to_store(login, session['user'])
             return redirect(url_for('upload_file'))
         except ValueError:
-            return "Invalid username", 403
+            message = "Некорректное имя пользователя"
+            return render_template('message.html', message=message), 403
     return render_template('register.html')
 
 @app.route('/uploads/<filename>')
@@ -120,7 +125,8 @@ def uploaded_file(filename):
     if filename.split('_')[0]==username:
         return send_from_directory(UPLOAD_FOLDER, filename)
     else:
-        return "Not yours", 403
+        message = "Недостаточно прав"
+        return render_template('message.html', message=message), 403
 
 @app.route('/uploads/')
 def file_listing():
