@@ -47,7 +47,8 @@ def upload_file():
             filename = username + '_' + secrets.token_hex(10) + '.txt'
             with open(os.path.join(UPLOAD_FOLDER, filename), 'wb+') as f:
                 f.write(file_bytes)
-            return f"Ваш фанфик был загружен на 'uploads/{filename}'"
+            message= f"Ваш фанфик был загружен на uploads/{filename}"
+            return render_template('message.html', message=message)
         else:
             return "Пустой файл"
     return render_template('upload_get.html')
@@ -67,7 +68,7 @@ def upload_text():
             filename = username + '_' + secrets.token_hex(10) + '.txt'
             with open(os.path.join(UPLOAD_FOLDER, filename), 'w+') as f:
                 f.write(text)
-            message = f"Ваш фанфик был загружен на 'uploads/{filename}'"
+            message = f"Ваш фанфик был загружен на uploads/{filename}"
             return render_template('message.html', message=message)
         else:
             message = "Пустой файл"
@@ -121,7 +122,7 @@ def uploaded_file(filename):
         return redirect(url_for('login'))
     cookie = session['user']
     username = redis_controller.get_username_by_cookie(cookie)
-    print(username)  
+    print(username)
     if filename.split('_')[0]==username:
         return send_from_directory(UPLOAD_FOLDER, filename)
     else:
