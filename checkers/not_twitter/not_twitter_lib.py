@@ -9,7 +9,7 @@ PORT = 3113
 MAX_FILESIZE = 1024
 
 find_fileinfo_regexp = re.compile(r'<div class="filenames">(.*)</div>')
-new_filename_link = re.compile(r"your file uploaded to '(.*)'")
+new_filename_link = re.compile(r"Ваш фанфик был загружен на  '(.*)'")
 
 
 
