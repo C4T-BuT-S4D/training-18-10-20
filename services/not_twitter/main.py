@@ -67,7 +67,7 @@ def upload_text():
             filename = username + '_' + secrets.token_hex(10) + '.txt'
             with open(os.path.join(UPLOAD_FOLDER, filename), 'w+') as f:
                 f.write(text)
-            message = f"your file uploaded to 'uploads/{filename}'"
+            message = f"Ваш фанфик был загружен на 'uploads/{filename}'"
             return render_template('message.html', message=message)
         else:
             message = "Пустой файл"

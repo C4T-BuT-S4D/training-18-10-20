@@ -6,7 +6,7 @@ import re
 
 ip = sys.argv[1]
 find_fileinfo_regexp = re.compile(r'<div class="filenames">(.*)</div>')
-new_filename_link = re.compile(r"your file uploaded to '(.*)'")
+new_filename_link = re.compile(r"Ваш фанфик был загружен на '(.*)'")
 
 url = f'http://{ip}:3113'
 login = secrets.token_hex(10)
