@@ -31,7 +31,7 @@ class CheckMachine:
         self.c.assert_eq(200, r.status_code, "Can't login", status=status)
         #print(r.status_code)
     
-    def _upload_file_by_link(self, session, link, status):
+    def _upload_file_by_link(self, session, link, status=Status.MUMBLE):
         """
         return filename of uploaded file
         """
@@ -41,7 +41,7 @@ class CheckMachine:
         new_link = new_filename_link.findall(r.text)[0]
         return new_link
     
-    def upload_text(self, session, text, status):
+    def upload_text(self, session, text, status=Status.MUMBLE):
         """
         return filename of uploaded file
         """
@@ -51,7 +51,7 @@ class CheckMachine:
         return new_link
 
     
-    def _download_file_by_link(self, session, link, status):
+    def _download_file_by_link(self, session, link, status=Status.MUMBLE):
         """
         return file content
         """
