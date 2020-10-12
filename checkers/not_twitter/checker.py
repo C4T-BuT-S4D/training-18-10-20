@@ -35,14 +35,14 @@ class Checker(BaseChecker):
     def put(self, flag_id, flag, vuln):
         login = secrets.token_hex(10)
         password = secrets.token_hex(10)
-        s = requests.Session()
+        s = get_initialized_session()
         self.mch.register(s, login, password)
         self.mch.login(s, login, password)
         link = self.mch.upload_text(s, flag)
         self.cquit(Status.OK, f'{login}', f'{login}:{password}:{link}')
 
     def get(self, flag_id, flag, vuln):
-        s = requests.Session()
+        s = get_initialized_session()
         u, p, link = flag_id.split(':')
         self.mch.login(s, u, p, Status.CORRUPT)
         self.mch.check_file_content_by_link(s, link, flag, Status.CORRUPT)
