@@ -23,7 +23,7 @@ class Checker(BaseChecker):
     def check(self):
         login = secrets.token_hex(10)
         password = secrets.token_hex(10)
-        s = requests.Session()
+        s = get_initialized_session()
         #check register
         self.mch.register(s, login, password)
         #check login
