@@ -12,6 +12,7 @@ import database_controller
 default_upload_folder = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
 UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", default_upload_folder)
 MAX_FILESIZE = 1024
+MAX_FILE_COUNT_IN_LISTING = 128
 
 app = Flask(__name__)
 app.secret_key = "useless_key"
@@ -132,6 +133,9 @@ def uploaded_file(filename):
 @app.route('/uploads/')
 def file_listing():
     limit = int(request.args.get('limit'))
+    if limit > MAX_FILE_COUNT_IN_LISTING:
+        message = "Limit is too big"
+        return render_template('message.html', message=message), 400
     offset = int(request.args.get('offset'))
     files = listdir_fileclass(offset, limit)
     print(files)
