@@ -73,7 +73,9 @@ class CheckMachine:
         self._check_filename_in_uploads_page(session, server_link, status)
     
     def _get_uploads_list(self, s):
-        uploads_html = s.get(self.url + '/uploads').text
+        limit = 128
+        offset = 0
+        uploads_html = s.get(self.url + f'/uploads?limit={limit}&offset={offset}').text
         files_info = find_fileinfo_regexp.findall(uploads_html)
         return[f"uploads/{x.split(': ')[0]}_{x.split(': ')[1]}" for x in files_info]
 
