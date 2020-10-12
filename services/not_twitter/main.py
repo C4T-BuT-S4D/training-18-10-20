@@ -132,8 +132,8 @@ def uploaded_file(filename):
 
 @app.route('/uploads/')
 def file_listing():
-    limit = request.args.get('limit')
-    offset = request.args.get('offset')
+    limit = int(request.args.get('limit'))
+    offset = int(request.args.get('offset'))
     files = listdir_fileclass(offset, limit)
     print(files)
     return render_template('uploads.html', files=files)

@@ -17,6 +17,7 @@ class File():
 
 def listdir_fileclass(offset, limit):
     ans = []
+    print(offset, limit)
     filenames = sorted(Path(UPLOAD_FOLDER).iterdir(), key=os.path.getmtime)
     for fn in list(reversed(filenames))[offset:offset+limit]:
         try:
