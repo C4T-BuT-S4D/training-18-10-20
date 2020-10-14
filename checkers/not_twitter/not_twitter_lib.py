@@ -61,7 +61,7 @@ class CheckMachine:
     
     def check_file_content_by_link(self, session, link, expected_content, status = Status.MUMBLE):
         file_content = self._download_file_by_link(session, link, status)
-        self.c.assert_eq(file_content, expected_content, "Can't upload text", status=status)
+        self.c.assert_eq(file_content, expected_content, "Can't download text", status=status)
         #print(file_content == expected_content, file_content, expected_content)
 
     def check_upload_by_link(self, session, link, status=Status.MUMBLE):
