@@ -104,7 +104,7 @@ func (v *vm) loadStrings(o, t, d uintptr) error {
 	return nil
 }
 
-const threshold = 0
+const threshold = 20
 
 func (v *vm) Run(bc []byte) error {
 

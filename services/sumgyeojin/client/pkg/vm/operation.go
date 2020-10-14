@@ -433,7 +433,61 @@ func (o *oSMov) Apply(s State) error {
 
 func (o *oSMov) JIT(s State) ([]byte, error) {
 	return jit.Code(fmt.Sprintf(`
-		mov %[1]s, %[2]s
+		xor rdi, rdi
+		mov rsi, QWORD [%[2]s]
+		add rsi, 16
+		mov rdx, 3
+		push r10
+		mov r10, 34
+		push r8
+		xor r8, r8
+		dec r8
+		push r9
+		xor r9, r9
+		push rcx
+		push r11
+		mov rax, 9
+		syscall
+		pop r11
+		pop rcx
+		pop r9
+		pop r8
+		pop r10
+
+		mov rdi, rax
+
+		push rdi
+
+		mov rax, QWORD [%[2]s]
+		mov QWORD [rdi], rax
+		mov rax, QWORD [%[2]s + 8]
+		mov QWORD [rdi + 8], rax
+
+		add rdi, 16
+		mov rax, QWORD [%[2]s + 8]
+		mov rsi, %[2]s
+		add rsi, 16
+
+	COPY:
+		test rax, rax
+		jz ENDCP
+		dec rax
+		mov dl, BYTE [rsi]
+		mov BYTE [rdi], dl
+		inc rdi
+		inc rsi
+		jmp COPY
+	ENDCP:
+		mov rdi, %[1]s
+		mov rsi, QWORD [%[1]s]
+		mov rax, 11
+		push rcx
+		push r11
+		syscall
+		pop r11
+		pop rcx
+
+		pop %[1]s
 	`,
 		o.to.ASMRegister(),
 		o.from.ASMRegister()))
@@ -622,7 +676,11 @@ func (o *oDiv) Apply(s State) error {
 
 func (o *oDiv) JIT(s State) ([]byte, error) {
 	return jit.Code(fmt.Sprintf(`
-		div %[1]s, %[2]s
+		xor rdx, rdx
+		mov rax, %[1]s
+		cqo
+		idiv %[2]s
+		mov %[1]s, rax
 	`,
 		o.to.ASMRegister(),
 		o.from.ASMRegister()))
