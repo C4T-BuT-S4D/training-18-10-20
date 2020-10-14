@@ -71,10 +71,7 @@ class Checker(BaseValidator):
         err = p.stderr.decode()
 
         self._log(f'stdout:\n{out}\nstderr:\n{err}')
-
-        if p.returncode != 101:
-            self._log(f'bad return code: {p.returncode}')
-            exit(1)
+        self._assert(p.returncode == 101, f'bad return code: {p.returncode}')
 
         return out, err
 
