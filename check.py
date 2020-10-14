@@ -115,6 +115,7 @@ class Checker(BaseValidator):
         for vuln in range(1, self._vulns + 1):
             flag = generate_flag(self._name)
             flag_id = self.put(flag=flag, flag_id=secrets.token_hex(16), vuln=vuln)
+            flag_id = flag_id.strip()
             self.get(flag, flag_id, vuln)
 
     def __str__(self):
@@ -154,7 +155,7 @@ class Service(BaseValidator):
 
         cnt_threads = max(1, min(8, RUNS // 16))
 
-        with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor-') as executor:
+        with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor') as executor:
             futures = (
                 executor.submit(self._checker.run_all)
                 for _ in range(RUNS)
