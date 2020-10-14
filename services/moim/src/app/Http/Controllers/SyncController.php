@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Library\AppStorage;
 use App\Library\Renderer;
 use App\Services\SyncService;
+use App\Services\UserService;
 use Illuminate\Http\Request;
 use App\Library\HtmlBuilder;
 use Illuminate\Http\UploadedFile;
@@ -20,10 +21,15 @@ class SyncController extends Controller
      * @var SyncService $syncService
      */
     private $syncService;
+    /**
+     * @var UserService
+     */
+    private $userService;
 
-    public function __construct(SyncService $service)
+    public function __construct(SyncService $service, UserService $us)
     {
         $this->syncService = $service;
+        $this->userService = $us;
     }
 
     public function addSync(Request $request)
@@ -75,6 +81,27 @@ class SyncController extends Controller
 
         file_put_contents($storage->templatePath($syncData['id']), $data);
         return response()->json(['id' => $syncData['id']]);
+    }
+
+    public function getInfo($id)
+    {
+        $sync = $this->syncService->getSyncById($id);
+        if (!$sync) {
+            return response()->json(['error' => "Sync not found"])->setStatusCode(404);
+        }
+        $author = $this->userService->get($sync->author_id);
+        return response()->json(
+            ['id' => $sync->id,
+                'capacity' => $sync->capacity,
+                'title' => $sync->title,
+                'description' => $sync->description,
+                'author' => [
+                    'id' => $author->id,
+                    'email' => $author->email,
+                ],
+                'created_at' => $sync->created_at,
+            ]
+        );
     }
 
     public function list(Request $request)
@@ -149,7 +176,7 @@ class SyncController extends Controller
         }
         $publicId = $info->public_id;
 
-        return response()->json(['nickname' => $info['nickname'], 'public_id' => $publicId, 'ticket_url' => '/tickets/' . $publicId . '.pdf']);
+        return response()->json(['nickname' => $info->nickname, 'public_id' => $publicId, 'ticket_url' => '/tickets/' . $publicId . '.pdf']);
     }
 
     public function latestSyncs()

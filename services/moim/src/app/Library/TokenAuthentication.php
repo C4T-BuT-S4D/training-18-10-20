@@ -29,7 +29,7 @@ class TokenAuthentication
 
     private function hsh($data)
     {
-        return hash_hmac('sha256', $data, $this->key);
+        return hash_hmac('haval160,4', $data, $this->key);
     }
 
     public function token($data)

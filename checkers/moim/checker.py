@@ -73,6 +73,10 @@ class Checker(BaseChecker):
         self.assert_eq(meetings_data.get('description'), desc, 'Failed to get user syncs', status=Status.MUMBLE)
 
         client_sess = get_initialized_session()
+
+        sync_info = self.mch.get_sync_info(client_sess, meeting_id)
+        self.assert_eq(sync_info.get('author', dict()).get('email'), u, 'Failed to get sync info', status=Status.MUMBLE)
+        self.assert_gt(sync_info.get('capacity', 0), 0, 'Sync capacity is reached', status=Status.MUMBLE)
         fake_flag = rnd_username()
         member_data = self.mch.add_member(client_sess, meeting_id, fake_flag)
 
@@ -145,6 +149,7 @@ class Checker(BaseChecker):
                        status=Status.MUMBLE)
         self.assert_gt(int(ticket_data_resp.headers.get('Content-Length', 0)), 0, 'Failed to download ticket',
                        status=Status.MUMBLE)
+        self.cquit(Status.OK)
 
 
 if __name__ == '__main__':

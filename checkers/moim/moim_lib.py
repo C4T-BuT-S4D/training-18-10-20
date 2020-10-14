@@ -88,3 +88,10 @@ class CheckMachine:
         r = sess.get(f'{self.api_url}/ticket/' + public_id)
         self.c.check_response(r, 'Could not get ticket data')
         return self.c.get_json(r, 'Could not get ticket data. Invalid content type')
+
+    def get_sync_info(self, sess: requests.Session, sync_id):
+        if not sess:
+            sess = get_initialized_session()
+        r = sess.get(f'{self.api_url}/sync/{sync_id}/info')
+        self.c.check_response(r, 'Could not get sync info')
+        return self.c.get_json(r, 'Could not get sync info. Invalid content type')
