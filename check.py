@@ -15,7 +15,6 @@ from typing import List, Tuple
 BASE_DIR = Path(__file__).resolve().absolute().parent
 SERVICES_PATH = BASE_DIR / 'services'
 CHECKERS_PATH = BASE_DIR / 'checkers'
-TRAVIS_PATH = BASE_DIR / '.travis.yml'
 RUNS = int(os.getenv('RUNS', default=10))
 HOST = os.getenv('HOST', default='127.0.0.1')
 OUT_LOCK = Lock()
@@ -26,12 +25,25 @@ def generate_flag(name):
     return name[0].upper() + ''.join(random.choices(alph, k=30)) + '='
 
 
-class Checker:
+class BaseValidator:
+    def _log(self, message: str):
+        with OUT_LOCK:
+            print(f'[{current_thread().name}] {str(self)}: {message}')
+
+    def _assert(self, cond, message):
+        if not cond:
+            self._log(message)
+            raise AssertionError
+
+
+class Checker(BaseValidator):
     def __init__(self, name: str):
         self._name = name
         self._exe_path = CHECKERS_PATH / self._name / 'checker.py'
-        assert os.access(self._exe_path,
-                         os.X_OK), f'checker {self._name}: {self._exe_path.relative_to(BASE_DIR)} must be executable'
+        self._assert(
+            os.access(self._exe_path, os.X_OK),
+            f'{self._exe_path.relative_to(BASE_DIR)} must be executable',
+        )
         self._timeout = 3
         self._get_info()
 
@@ -43,18 +55,10 @@ class Checker:
         self._log(f'got info: {info}')
 
         self._vulns = int(info['vulns'])
-        self._puts = int(info['puts'])
-        self._gets = int(info['gets'])
         self._timeout = int(info['timeout'])
         self._attack_data = bool(info['attack_data'])
 
-        assert self._puts > 0, f'checker {self._name}: invalid puts: {self._puts}'
-        assert self._gets > 0, f'checker {self._name}: invalid puts: {self._gets}'
-        assert 60 > self._timeout > 0, f'checker {self._name}: invalid timeout: {self._timeout}'
-
-    def _log(self, message: str):
-        with OUT_LOCK:
-            print(f'[{current_thread().name}] checker {self._name}: {message}')
+        self._assert(60 > self._timeout > 0, f'invalid timeout: {self._timeout}')
 
     def _run_command(self, command: List[str]) -> Tuple[str, str]:
         try:
@@ -84,13 +88,13 @@ class Checker:
         cmd = [str(self._exe_path), 'put', HOST, flag_id, flag, str(vuln)]
         out, err = self._run_command(cmd)
 
-        assert out, f'checker {self._name}: stdout is empty'
+        self._assert(out, 'stdout is empty')
 
         new_flag_id = err
-        assert new_flag_id, f'checker {self._name}: returned flag_id is empty'
+        self._assert(new_flag_id, 'returned flag_id is empty')
 
         if self._attack_data:
-            assert flag not in out, f'checker {self._name}: Flag is leaked in public data'
+            self._assert(flag not in out, 'flag is leaked in public data')
 
         return new_flag_id
 
@@ -109,14 +113,14 @@ class Checker:
             self.get(flag, flag_id, vuln)
 
     def __str__(self):
-        return f'Checker {self._name}'
+        return f'checker {self._name}'
 
 
-class Service:
+class Service(BaseValidator):
     def __init__(self, name: str):
         self._name = name
         self._dc_path = SERVICES_PATH / self._name / 'docker-compose.yml'
-        assert self._dc_path.exists(), f'service {self._name}: docker-compose.yml missing'
+        self._assert(self._dc_path.exists(), f'{self._dc_path.relative_to(BASE_DIR)} missing')
 
         self._checker = Checker(self._name)
 
@@ -163,7 +167,7 @@ class Service:
             t.join()
 
     def __str__(self):
-        return f'Service {self._name}'
+        return f'service {self._name}'
 
 
 def get_services() -> List[Service]:
