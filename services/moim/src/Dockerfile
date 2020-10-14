@@ -30,7 +30,7 @@ RUN composer global require hirak/prestissimo
 
 RUN composer install
 
-COPY --chown=www:www . /var/www/html/
+COPY --chown=www-data:www-data . /var/www/html/
 
 RUN chown -R www-data /var/www/html
 
