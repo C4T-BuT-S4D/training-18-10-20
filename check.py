@@ -7,9 +7,11 @@ import random
 import secrets
 import string
 import subprocess
+import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Thread, Lock, current_thread
+from threading import Lock, current_thread
 from typing import List, Tuple
 
 BASE_DIR = Path(__file__).resolve().absolute().parent
@@ -28,10 +30,7 @@ def generate_flag(name):
 class BaseValidator:
     def _log(self, message: str):
         with OUT_LOCK:
-            print(
-                f'[{current_thread().name}] {str(self)}: {message}',
-                end='' if message.endswith('\n') else '\n',
-            )
+            print(f'[{current_thread().name}] {str(self)}: {message}')
 
     def _assert(self, cond, message):
         if not cond:
@@ -65,15 +64,20 @@ class Checker(BaseValidator):
 
     def _run_command(self, command: List[str]) -> Tuple[str, str]:
         try:
+            start = time.monotonic()
             p = subprocess.run(command, capture_output=True, check=False, timeout=self._timeout)
+            end = time.monotonic()
         except subprocess.TimeoutExpired:
             self._log('command timeout expired')
             raise
 
+        elapsed = end - start
         out = p.stdout.decode()
         err = p.stderr.decode()
 
-        self._log(f'stdout:\n{out}\nstderr:\n{err}')
+        out_s = out.rstrip('\n')
+        err_s = err.rstrip('\n')
+        self._log(f'time: {elapsed:.2f}s\nstdout:\n{out_s}\nstderr:\n{err_s}')
         self._assert(p.returncode == 101, f'bad return code: {p.returncode}')
 
         return out, err
@@ -110,6 +114,7 @@ class Checker(BaseValidator):
         for vuln in range(1, self._vulns + 1):
             flag = generate_flag(self._name)
             flag_id = self.put(flag=flag, flag_id=secrets.token_hex(16), vuln=vuln)
+            flag_id = flag_id.strip()
             self.get(flag, flag_id, vuln)
 
     def __str__(self):
@@ -144,27 +149,18 @@ class Service(BaseValidator):
         self._log('stopping')
         self._run_dc('down', '-v')
 
-    def _run_subtask(self, cnt):
-        for _ in range(cnt):
-            self._checker.run_all()
-
     def validate_checker(self):
         self._log('validating checker')
 
         cnt_threads = max(1, min(8, RUNS // 16))
-        per_thread = RUNS // cnt_threads
-        tasks = RUNS
-        threads = []
 
-        while tasks:
-            cnt = min(tasks, per_thread)
-            t = Thread(target=self._run_subtask, args=(cnt,))
-            t.start()
-            threads.append(t)
-            tasks -= per_thread
-
-        for t in threads:
-            t.join()
+        with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor') as executor:
+            futures = (
+                executor.submit(self._checker.run_all)
+                for _ in range(RUNS)
+            )
+            for future in futures:
+                future.result()
 
     def __str__(self):
         return f'service {self._name}'
@@ -249,7 +245,7 @@ if __name__ == '__main__':
     try:
         parsed.func(parsed)
     except AssertionError:
-        raise
+        exit(1)
     except Exception as e:
         tb = traceback.format_exc()
         print('Got exception:', e, tb)
