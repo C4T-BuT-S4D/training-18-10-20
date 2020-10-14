@@ -332,7 +332,7 @@ int get_page( char* packet, int client_fd )
 
 	if ( g_market->max_item_id > 10 && page_idx > 0 )
 	{
-		if ( g_market->max_item_id / 10 < page_idx )
+		if ( (g_market->max_item_id / 10) < page_idx )
 		{
 			page_not_found( client_fd );
 			return 0;
@@ -343,7 +343,7 @@ int get_page( char* packet, int client_fd )
 		}
 	}
 
-	for ( int i = g_market->max_item_id - (offset * 10); i >= 0 && items_cnt < 10; i-- )
+	for ( int i = (g_market->max_item_id - (offset * 10)); i >= 0 && items_cnt < 10; i-- )
 	{
 		if ( !g_market->chunks[ i ].used )
 			continue;
@@ -354,12 +354,15 @@ int get_page( char* packet, int client_fd )
 		market_item* itm = &g_market->chunks[ i ];
 		printf( "item[%d]\n", i );
 
-		sprintf( req_packet + strlen( req_packet ),
-			"item|%s|%d|%u|\n",
-			itm->name, itm->cost, itm->token
-		);
+		if ( itm->name != NULL && itm->cost != 0 && itm->token != 0 )
+		{
+			sprintf( req_packet + strlen( req_packet ),
+				"item|%s|%d|%u|\n",
+				itm->name, itm->cost, itm->token
+			);
 
-		items_cnt += 1;
+			items_cnt += 1;
+		}
 	}
 
 	if ( items_cnt == 0 )
@@ -369,7 +372,8 @@ int get_page( char* packet, int client_fd )
 	}
 
 	send( client_fd, "page_items\0", 10, 0 );
-
+	usleep( 500 );
+	
 	printf( "get_page, req_packet = %s\n", req_packet );
 
 	send( client_fd, req_packet, strlen( req_packet ), 0 );

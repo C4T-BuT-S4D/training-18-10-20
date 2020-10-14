@@ -6,7 +6,9 @@
 #include <pthread.h>
 #include <time.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <malloc.h>
+#include <sys/socket.h>  
 
 typedef unsigned long long int QWORD;
 typedef unsigned int DWORD;
@@ -15,7 +17,7 @@ typedef unsigned char BYTE;
 
 // build conditions
 //#define MACOS 1
-#define DEBUG 1
+//#define DEBUG 1
 #define LINUX 1
 
 // some const
@@ -61,6 +63,8 @@ typedef unsigned char BYTE;
 #define REGISTER 2
 #define EXIT 3
 
+#define MARKET_HOST_NAME "sijang_market"
+
 enum USER_MENU_OPTIONS { EMPTRY, VIEW_PROFILE, BUY_WEAPON, 
 	SELL_WEAPON, CHANGE_STATUS, SET_WEAPON, UNSET_WEAPON, 
 	USER_EXIT 
@@ -74,10 +78,10 @@ enum MARKET_CODES { MARKET_BUSY, MARKET_ACCESS, MARKET_ITEM_ADDED,
 
 // 21 byte
 typedef struct {
-	char* name;
-	QWORD cost;
-	DWORD token;
-	BYTE id;
+	char* name; // +0
+	QWORD cost; // +8
+	DWORD token; // +16
+	BYTE id; // +20
 } page_item;
 
 typedef struct {

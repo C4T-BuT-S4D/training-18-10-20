@@ -359,10 +359,10 @@ int save_current_user( void )
 	fprintf( fp, "%s\n", g_user->password );
 	fprintf( fp, "%d\n", g_user->coins );
 
-	if ( g_user->is_weapon_set )
-	{
-		unset_weapon();
-	}
+	// if ( g_user->is_weapon_set )
+	// {
+	// 	unset_weapon();
+	// }
 
 	fprintf( fp, "%d\n", FALSE );
 
@@ -424,13 +424,17 @@ int buy_weapon( void )
 
 	// print header if not empty
 	printf( table_header );
+	fflush( stdout );
 	
 	for ( int i = 0; i < 10 && page[ i ]; i++ )
 	{
+		fflush( stdout );
 		printf( "+  %d  |--|%28s|--|  %6lld  |--|%13u|\n", i, 
 			page[ i ]->name, page[ i ]->cost, page[ i ]->token
 		);
+		fflush( stdout );
 		puts( "+-----+--+----------------------------+--+----------+--+-------------+" );
+		fflush( stdout );
 	}
 
 	int max_menu_inputs = 50;
@@ -536,9 +540,19 @@ enum MARKET_CODES get_items_from_server( int page_id, page_item** page )
 	{
 		// get data from server
 		char* server_data = alloc_mem( MARKET_ITEM_SIZE * PAGE_SIZE );
-		recv( market_fd, server_data, MARKET_ITEM_SIZE * PAGE_SIZE, 0 );
+		int nbytes = recv( market_fd, server_data, MARKET_ITEM_SIZE * PAGE_SIZE, 0 );
 		
+		while ( nbytes == 0 )
+		{
+			nbytes = recv( market_fd, server_data, MARKET_ITEM_SIZE * PAGE_SIZE, 0 );
+		}
+
 		// proceed page data
+		#ifdef DEBUG	
+			printf( "main.c, 547, get_items_from_server, server_data: %s\n", server_data );
+		#endif
+
+
 		char* ptr = strtok( server_data, "\n" );
 		char** lines = (char**) alloc_mem( sizeof( char* ) * PAGE_SIZE );
 
@@ -656,7 +670,6 @@ int buy_by_token( page_item** page )
 
 	return 0;
 };
-
 
 enum MARKET_CODES buy( DWORD token, market_item* item )
 {
@@ -854,6 +867,44 @@ int get_another_page( page_item** page )
 {
 	printf( "[?] Enter page id: " );
 	int page_id = read_int();
+
+	if ( page_id < 0 || page_id > 100 )
+	{
+		puts( "[-] Incorrect id!" );
+		return page_id;
+	}
+	
+	// clear currnet page
+	for ( int i = 0; i < 10; i++ )
+	{
+		if ( page[ i ] == NULL )
+			continue;
+
+		free_mem( page[ i ]->name );
+		page[ i ]->name = NULL;
+		page[ i ]->cost = 0;
+		page[ i ]->token = 0;
+	}
+
+	// get new page
+	enum MARKET_CODES ret_code = get_items_from_server( page_id, page );
+
+	if ( ret_code == MARKET_IS_EMPTY )
+	{
+		puts( "[-] Market is empty!" );
+		return 1;
+	}
+
+	// print header if not empty
+	printf( table_header );
+	
+	for ( int i = 0; i < 10 && page[ i ]; i++ )
+	{
+		printf( "+  %d  |--|%28s|--|  %6lld  |--|%13u|\n", i, 
+			page[ i ]->name, page[ i ]->cost, page[ i ]->token
+		);
+		puts( "+-----+--+----------------------------+--+----------+--+-------------+" );
+	}
 
 	// todo, add wrapper on sever handler
 	return 0;
@@ -1339,6 +1390,12 @@ void* add_to_market_hndl( void* args )
 	market_item* new_item = (market_item*) alloc_mem( sizeof( market_item ) );	
 	DWORD item_token = rand32();
 
+	if ( name == NULL )
+	{
+		name = (char*) alloc_mem( 32 );
+		strcpy( name, "Undefined" );
+	}
+	
 	new_item->name = name;
 	new_item->owner = g_user->name;
 	new_item->desc = desc;
@@ -1495,6 +1552,10 @@ int send_req( int fd, char* packet )
 	char* recv_packet = (char*) alloc_mem( DEFUALT_BUF_SIZE );
 	recv( fd, recv_packet, DEFUALT_BUF_SIZE, 0 );
 
+	#ifdef DEBUG
+		printf( "send_req, 1551, recv_packet = %s\n", recv_packet );
+	#endif
+
 	if ( !strncmp( recv_packet, "item_added\0", 10 ) )
 	{
 		free_mem( recv_packet );
@@ -1565,10 +1626,21 @@ int connect_to_market( void )
 	struct sockaddr_in address;
 	memset( &address, 0, sizeof( address ) );
 
+	struct hostent* market_host; 
+	market_host = gethostbyname( MARKET_HOST_NAME );
+
+	if ( market_host == NULL )
+	{
+		puts( "Invalid market hostname!" );
+		close( fd );
+		return -1;
+	}
+
+	memcpy(&address.sin_addr, market_host->h_addr_list[0], market_host->h_length);
+
 	address.sin_family = AF_INET;
 	address.sin_port = htons( MARKET_PORT );
-	address.sin_addr.s_addr = INADDR_ANY;
-
+	
 	int error = connect( fd, 
 		(struct sockaddr *)&address, 
 		sizeof( address ) 
@@ -1735,7 +1807,7 @@ weapon* get_random_weapon( void )
 {
 	weapon* wp = (weapon*) alloc_mem( sizeof( weapon ) );
 
-	wp->quality = rand16();
+	wp->quality = rand16() + 2000;
 	wp->name = weapon_list[ rand8() % weapon_list_size ];
 	wp->description = NULL;
 
