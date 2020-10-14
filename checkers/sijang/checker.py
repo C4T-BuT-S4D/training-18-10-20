@@ -25,7 +25,7 @@ class Checker(BaseChecker):
 	def __init__(self, *args, **kwargs):
 		uses_attack_data = True
 		timeout = 15  # 15 seconds
-		vulns = 1  # 3 places for flags
+		vulns = 1  # 1 places for flags
 		super(Checker, self).__init__(*args, **kwargs)
 		self.mch = CheckMachine(self)
 
@@ -124,7 +124,7 @@ class Checker(BaseChecker):
 					flag, status )
 			)
 
-		self.safe_close_connection()
+		self.mch.safe_close_connection()
 		self.cquit( Status.OK )
 
 if __name__ == '__main__':
