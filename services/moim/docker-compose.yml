@@ -1,0 +1,30 @@
+version: '2'
+services:
+  app:
+    build: src
+    #    ports:
+    #      - "8000:80"
+    environment:
+      - STORAGE_BASE_PATH=/storage
+    volumes:
+      - "./data:/storage"
+    depends_on:
+      - db
+  nginx:
+    image: nginx:1.18.0-alpine
+    volumes:
+      - ./front/app.conf:/etc/nginx/conf.d/default.conf
+      - ./front/proxy_params:/etc/nginx/proxy_params
+      - ./data:/data
+    depends_on:
+      - app
+    ports:
+      - "8000:80"
+  db:
+    image: postgres:10.8-alpine
+    restart: on-failure
+    environment:
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=moim
+      - POSTGRES_DB=moim
+      - POSTGRES_PASSWORD=moim
