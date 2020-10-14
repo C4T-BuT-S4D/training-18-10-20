@@ -154,7 +154,7 @@ class Service(BaseValidator):
 
         cnt_threads = max(1, min(8, RUNS // 16))
 
-        with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor-') as executor:
+        with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor') as executor:
             futures = (
                 executor.submit(self._checker.run_all)
                 for _ in range(RUNS)
