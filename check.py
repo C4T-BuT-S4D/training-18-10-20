@@ -8,8 +8,9 @@ import secrets
 import string
 import subprocess
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Thread, Lock, current_thread
+from threading import Lock, current_thread
 from typing import List, Tuple
 
 BASE_DIR = Path(__file__).resolve().absolute().parent
@@ -144,27 +145,18 @@ class Service(BaseValidator):
         self._log('stopping')
         self._run_dc('down', '-v')
 
-    def _run_subtask(self, cnt):
-        for _ in range(cnt):
-            self._checker.run_all()
-
     def validate_checker(self):
         self._log('validating checker')
 
         cnt_threads = max(1, min(8, RUNS // 16))
-        per_thread = RUNS // cnt_threads
-        tasks = RUNS
-        threads = []
 
-        while tasks:
-            cnt = min(tasks, per_thread)
-            t = Thread(target=self._run_subtask, args=(cnt,))
-            t.start()
-            threads.append(t)
-            tasks -= per_thread
-
-        for t in threads:
-            t.join()
+        with ThreadPoolExecutor(max_workers=cnt_threads) as executor:
+            futures = (
+                executor.submit(self._checker.run_all)
+                for _ in range(RUNS)
+            )
+            for future in futures:
+                future.result()
 
     def __str__(self):
         return f'service {self._name}'
