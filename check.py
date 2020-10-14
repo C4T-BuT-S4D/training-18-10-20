@@ -115,6 +115,7 @@ class Checker(BaseValidator):
         for vuln in range(1, self._vulns + 1):
             flag = generate_flag(self._name)
             flag_id = self.put(flag=flag, flag_id=secrets.token_hex(16), vuln=vuln)
+            flag_id = flag_id.strip()
             self.get(flag, flag_id, vuln)
 
     def __str__(self):
