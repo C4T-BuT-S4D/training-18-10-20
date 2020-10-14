@@ -28,7 +28,10 @@ def generate_flag(name):
 class BaseValidator:
     def _log(self, message: str):
         with OUT_LOCK:
-            print(f'[{current_thread().name}] {str(self)}: {message}')
+            print(
+                f'[{current_thread().name}] {str(self)}: {message}',
+                end='' if message.endswith('\n') else '\n',
+            )
 
     def _assert(self, cond, message):
         if not cond:
