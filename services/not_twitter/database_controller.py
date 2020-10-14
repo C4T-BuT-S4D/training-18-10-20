@@ -20,7 +20,7 @@ class DatabaseClient:
     def check_user(self, user):
         self.cursor.execute('select * from users where login = %s', (user.login, ))
         u = self.cursor.fetchone()
-        print(u, user.password_hash)
+        print(f"user {u}, hash: {user.password_hash}")
         if u is None or u[1] != user.password_hash:
             return False
         else:
@@ -29,7 +29,7 @@ class DatabaseClient:
     def check_username(self, username):
         self.cursor.execute('select * from users where login = %s', (username, ))
         u = self.cursor.fetchone()
-        print(u)
+        print(f"user in ceck_username {u}")
         if u is None:
             return True
         else:

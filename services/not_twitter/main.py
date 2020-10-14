@@ -81,12 +81,12 @@ def login():
     if request.method == 'POST':
         login = request.form['login']
         password = request.form['password']
-        print(login, password)
+        print(f"log {login}, pass {password}")
         try:
             user = user_model.User(login, password)
             print(f"login {user}", flush=True)
             with database_controller.DatabaseClient() as db:
-                print(db.get_all_users())
+                print(f"all users {db.get_all_users()}")
                 if not db.check_user(user):
                     message = "Данный пользователь отсутствует в базе данных"
                     return render_template('message.html', message=message), 400
@@ -103,7 +103,7 @@ def register():
     if request.method == 'POST':
         login = request.form['login']
         password = request.form['password']
-        print(login, password)
+        print(f"log {login}, pass {password}")
         try:
             user = user_model.User(login, password)
             print(f"login {user}", flush=True)
@@ -123,7 +123,7 @@ def uploaded_file(filename):
         return redirect(url_for('login'))
     cookie = session['user']
     username = redis_controller.get_username_by_cookie(cookie)
-    print(username)
+    print(f"upl_file username {username}")
     if filename.split('_')[0]==username:
         return send_from_directory(UPLOAD_FOLDER, filename)
     else:
@@ -138,7 +138,7 @@ def file_listing():
         return render_template('message.html', message=message), 400
     offset = int(request.args.get('offset'))
     files = listdir_fileclass(offset, limit)
-    print(files)
+    print(f"files {files}")
     return render_template('uploads.html', files=files)
 
 if __name__ == "__main__":
