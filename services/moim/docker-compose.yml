@@ -2,8 +2,6 @@ version: '2'
 services:
   app:
     build: src
-    #    ports:
-    #      - "8000:80"
     environment:
       - STORAGE_BASE_PATH=/storage
     volumes:
@@ -15,6 +13,7 @@ services:
     volumes:
       - ./front/app.conf:/etc/nginx/conf.d/default.conf
       - ./front/proxy_params:/etc/nginx/proxy_params
+      - ./front/build:/front/build
       - ./data:/data
     depends_on:
       - app

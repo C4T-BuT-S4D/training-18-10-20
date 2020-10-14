@@ -38,7 +38,7 @@ class SyncService
 
     public function latestSyncs()
     {
-        return DB::table(self::table)->orderBy('created_at', 'DESC')->limit(75)->get();
+        return DB::table(self::table)->orderBy('id', 'DESC')->limit(75)->get();
     }
 
     public function addMember($sync, $nickname)

@@ -175,8 +175,16 @@ class SyncController extends Controller
             return response()->json(['error' => "Sync not found"])->setStatusCode(404);
         }
         $publicId = $info->public_id;
-
-        return response()->json(['nickname' => $info->nickname, 'public_id' => $publicId, 'ticket_url' => '/tickets/' . $publicId . '.pdf']);
+        $syncId = $info->sync_id;
+        $sync = $this->syncService->getSyncById($syncId);
+        $syncData = [
+            'title' => $sync->title,
+            'description' => $sync->description,
+        ];
+        return response()->json([
+                'sync' => $syncData, 'nickname' => $info->nickname, 'public_id' => $publicId,
+                'ticket_url' => '/tickets/' . $publicId . '.pdf']
+        );
     }
 
     public function latestSyncs()

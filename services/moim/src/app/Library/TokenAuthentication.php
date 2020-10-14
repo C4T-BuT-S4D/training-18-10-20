@@ -53,7 +53,7 @@ class TokenAuthentication
 
     public function cookie(GenericUser $user)
     {
-        return Cookie::create($this->cookieName(), $this->token(['id' => $user->id, 'email' => $user->email]));
+        return Cookie::create($this->cookieName(), $this->token(['id' => $user->id, 'email' => $user->email]))->withSameSite(Cookie::SAMESITE_NONE);
     }
 
     public function fromCookie($cookie)

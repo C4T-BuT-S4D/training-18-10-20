@@ -31,7 +31,7 @@ class AuthController extends Controller
             return \response()->json(['status' => 'ok', 'user' => ['id' => $user->id, 'email' => $user->email]])
                 ->withCookie(TokenAuth::cookie($user));
         }
-        return \response()->json(['error' => 'Login or password incorrect.']);
+        return \response()->json(['error' => 'Login or password incorrect.'], 412);
     }
 
 
@@ -48,12 +48,12 @@ class AuthController extends Controller
 
 
         if ($this->userService->exists($email)) {
-            return \response()->json(['error' => 'User with this email already exists.']);
+            return \response()->json(['error' => 'User with this email already exists.'], 412);
         }
 
         $user = $this->userService->addUser($email, $password);
         if ($user == null) {
-            return \response()->json(['error' => 'Failed to register. Try again.']);
+            return \response()->json(['error' => 'Failed to register. Try again.'], 412);
         }
 
         return \response()->json(['status' => 'ok', 'user' => ['id' => $user->id, 'email' => $user->email]])

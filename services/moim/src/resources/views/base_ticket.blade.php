@@ -10,12 +10,13 @@
 
         body {
             margin: 0;
-            font-family: "Audiowide", cursive;
-            font-weight: 400;
-            font-size: 23px;
+
         }
 
         #top-bar {
+            font-family: "Audiowide", cursive;
+            font-weight: 400;
+            font-size: 23px;
             border-bottom: 1px solid #7C7C7C;
             padding: 1cm 0 10px;
             background-repeat: no-repeat;
@@ -44,9 +45,11 @@
 </head>
 <body>
 <div id="top-bar">
-    <div id="event"><p>{{ $title }}</p></div>
-    <div id="title"><p>For: ##NICKNAME##</p></div>
-    <div id="info"><p>{{ $description }}</p></div>
+    <p id="event"><p>{{ $title }}</p>
+    <br>
+    <p id="title"><p>For: ##NICKNAME##</p>
+    <br>
+    <p id="info"><p>{{ $description }}</p></p>
     <div id="logo">
         {{ $img }}
     </div>

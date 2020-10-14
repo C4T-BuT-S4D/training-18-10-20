@@ -6,3 +6,4 @@ Homestead.yaml
 data/*
 !data/.gitkeep
 !src/.env
+!front/build
