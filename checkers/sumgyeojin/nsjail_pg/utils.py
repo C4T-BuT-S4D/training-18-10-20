@@ -12,7 +12,7 @@ from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import List, Optional
 
-from serializers import CommandStats
+from .serializers import CommandStats
 
 STANDARD_FDS = {0, 1, 2}
 
@@ -100,12 +100,6 @@ def run_command_fast(command: List[str], *, stdin: Optional[int] = None, stdout:
         WARNING: works only on UNIX systems.
     """
     str_command = ' '.join(shlex.quote(x) for x in command)
-    print(
-        f"Running command {repr(str_command)} with "
-        f"stdin={repr(stdin)} ({type(stdin)}), "
-        f"stdout={repr(stdout)} ({type(stdout)}), "
-        f"stderr={repr(stderr)} ({type(stderr)})"
-    )
 
     r, w = Pipe(duplex=False)
 

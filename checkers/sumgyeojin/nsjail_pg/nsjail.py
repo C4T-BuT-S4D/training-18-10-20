@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import List, Optional, IO
 import typing
 
-from serializers import RunResult
-from utils import run_command_fast, force_printable
+from .serializers import RunResult
+from .utils import run_command_fast, force_printable
 
 CommandFile = typing.Union[int, Path, None]
 
