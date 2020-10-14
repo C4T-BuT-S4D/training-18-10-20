@@ -7,6 +7,7 @@ import random
 import secrets
 import string
 import subprocess
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -66,15 +67,18 @@ class Checker(BaseValidator):
 
     def _run_command(self, command: List[str]) -> Tuple[str, str]:
         try:
+            start = time.monotonic()
             p = subprocess.run(command, capture_output=True, check=False, timeout=self._timeout)
+            end = time.monotonic()
         except subprocess.TimeoutExpired:
             self._log('command timeout expired')
             raise
 
+        elapsed = end - start
         out = p.stdout.decode()
         err = p.stderr.decode()
 
-        self._log(f'stdout:\n{out}\nstderr:\n{err}')
+        self._log(f'time: {elapsed:.2f}s\nstdout:\n{out}\nstderr:\n{err}')
         self._assert(p.returncode == 101, f'bad return code: {p.returncode}')
 
         return out, err
@@ -241,7 +245,7 @@ if __name__ == '__main__':
     try:
         parsed.func(parsed)
     except AssertionError:
-        raise
+        exit(1)
     except Exception as e:
         tb = traceback.format_exc()
         print('Got exception:', e, tb)
