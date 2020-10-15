@@ -7,7 +7,7 @@ namespace App\Library;
 class Renderer
 {
     private $rendererPath;
-    const timeout = 2;
+    const timeout = 4;
 
     public function __construct($rendererPath)
     {
