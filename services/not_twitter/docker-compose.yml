@@ -27,7 +27,6 @@ services:
     ports:
       - "3113:3113"
     networks:
-      - redis-network
       - default
       - internal
     environment:
@@ -38,13 +37,11 @@ services:
     image: redis
     container_name: gredis
     networks:
-      - redis-network
+      - internal
     restart: "always"
 
 networks:
   default:
-  redis-network:
-    driver: bridge
   internal:
     internal: true
   
