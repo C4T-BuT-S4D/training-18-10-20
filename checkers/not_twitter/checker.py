@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+from gevent import monkey
+monkey.patch_all()
+
 from not_twitter_lib import CheckMachine
 from checklib import BaseChecker, Status, get_initialized_session
 from checklib import rnd_username, rnd_password
@@ -9,7 +12,10 @@ import requests
 import sys 
 import urllib
 
+
 class Checker(BaseChecker):
+    uses_attack_data = True
+
     def __init__(self, *args, **kwargs):
         super(Checker, self).__init__(*args, **kwargs)
         self.mch = CheckMachine(self)
