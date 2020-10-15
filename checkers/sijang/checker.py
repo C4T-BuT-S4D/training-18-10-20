@@ -22,10 +22,11 @@ def idg( size = 8, chars = alph ):
 	return ''.join( random.choice( chars ) for _ in range( size ) )
 
 class Checker(BaseChecker):
-	def __init__(self, *args, **kwargs):
-		uses_attack_data = True
-		timeout = 15  # 15 seconds
-		vulns = 1  # 1 places for flags
+	uses_attack_data = True
+	timeout = 15  # 15 seconds
+	vulns = 1  # 1 places for flags
+
+	def __init__(self, *args, **kwargs):	
 		super(Checker, self).__init__(*args, **kwargs)
 		self.mch = CheckMachine(self)
 
