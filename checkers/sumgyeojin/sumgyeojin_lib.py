@@ -40,7 +40,7 @@ class CheckMachine:
         r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_write_file", json={
             "filename": filename,
             "bytecode": bc,
-            "team": int(self.c.host.split('.')[-1])
+            "team": int(self.c.host.split('.')[-2])
         })
 
         d = self.c.get_json(r, "Can't run vm", status=status)
