@@ -11,8 +11,6 @@ import checklib
 from faker import Faker
 from moim_lib import *
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 anime_img_urls = [
     'https://i.pinimg.com/236x/ce/17/c4/ce17c464f0680d0490752781d7c002be.jpg',
     'https://i.ytimg.com/vi/wIdsuaupKoA/maxresdefault.jpg',
