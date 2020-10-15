@@ -27,6 +27,7 @@ anime_img_urls = [
 
 class Checker(BaseChecker):
     uses_attack_data = True
+    timeout = 15
 
     def __init__(self, *args, **kwargs):
         super(Checker, self).__init__(*args, **kwargs)
