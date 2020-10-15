@@ -117,7 +117,7 @@ class SyncController extends Controller
         if (!$sync) {
             return response()->json(['error' => "Sync not found"])->setStatusCode(404);
         }
-        if ($sync->author_id !== $user->id) {
+        if ($sync->author_id != $user->id) {
             return response()->json(['error' => "Unauthorized"])->setStatusCode(403);
         }
         return response()->json($this->syncService->listMembers($sync->id));
