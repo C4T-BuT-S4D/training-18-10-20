@@ -29,7 +29,7 @@ class DatabaseClient:
     def check_username(self, username):
         self.cursor.execute('select * from users where login = %s', (username, ))
         u = self.cursor.fetchone()
-        print(f"user in ceck_username {u}")
+        print(f"user in check_username {u}")
         if u is None:
             return True
         else:
