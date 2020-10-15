@@ -203,7 +203,6 @@ def validate_checkers(_args):
     for service in get_services():
         service.validate_checker()
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Validate checkers for A&D. '

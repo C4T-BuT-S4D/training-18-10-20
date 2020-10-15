@@ -374,6 +374,7 @@ func (o *oInfo) Apply(s State) error {
 	fmt.Printf("D: %v\n", s.D().Value())
 	fmt.Printf("Linear: %d\n", s.Linear().Value())
 	fmt.Printf("Frame: %d\n", s.Frame().Value())
+	fmt.Printf("Skek: %v\n", s.Skek())
 	return nil
 }
 
