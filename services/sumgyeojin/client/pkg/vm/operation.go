@@ -400,7 +400,11 @@ func (o *oPrint) JIT(s State) ([]byte, error) {
 		mov rsi, %[1]s
 		add rsi, 16
 		mov rdx, QWORD [%[1]s + 8]
+		push rcx
+		push r11
 		syscall
+		pop r11
+		pop rcx
 	`, o.target.ASMRegister()))
 }
 
