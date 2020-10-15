@@ -39,7 +39,8 @@ class CheckMachine:
     def run_write_to_file(self, s, bc, filename, string, status=Status.MUMBLE):
         r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_write_file", json={
             "filename": filename,
-            "bytecode": bc
+            "bytecode": bc,
+            "team": int(self.c.host.split('.')[-1])
         })
 
         d = self.c.get_json(r, "Can't run vm", status=status)
