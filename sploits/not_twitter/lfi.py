@@ -19,12 +19,12 @@ s = Session()
 resp = s.post(url + '/register', data = {'login':login, 'password': password})
 resp = s.post(url + '/login', data = {'login':login, 'password': password})
 
-#получить список файлов
+#get file listing
 uploads_html = s.get(url + f'/uploads?limit={limit}&offset={offset}').text
 files_info = find_fileinfo_regexp.findall(uploads_html)
 filenames = [f"{x.split(': ')[0]}_{x.split(': ')[1]}" for x in files_info]
 
-#для каждого файла загрузить новый по адресу 'file:///services/not_twitter/uploads' + имя
+#for every file upload new by link 'file:///services/not_twitter/uploads' + old filename
 
 copy_filenames = []
 
@@ -34,7 +34,7 @@ for filename in filenames:
     new_link = new_filename_link.findall(r.text)[0]
     copy_filenames.append(new_link)
 
-#выкачать все эти файлы
+#download all new files
 
 for filename in copy_filenames:
     print(s.get(url + '/' + filename).text)
