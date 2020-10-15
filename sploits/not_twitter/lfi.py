@@ -9,7 +9,7 @@ offset = 0
 
 ip = sys.argv[1]
 find_fileinfo_regexp = re.compile(r'<div class="filenames">(.*)</div>')
-new_filename_link = re.compile(r'<div class="message">Ваш фанфик был загружен на (uploads/.*)</div>')
+new_filename_link = re.compile(r'<div class="message">Your fanfic was uploaded to (uploads/.*)</div>')
 
 url = f'http://{ip}:3113'
 login = secrets.token_hex(10)
