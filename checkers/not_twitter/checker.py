@@ -36,7 +36,7 @@ class Checker(BaseChecker):
         self.mch.login(s, login, password)
         #check upload by http link (+ get this file ; + it appears in uploads)
         #self.mch.check_upload_by_link(s, "http://example.com")
-        self.mch.check_upload_by_link(s, "http://example.com", login)
+        self.mch.check_upload_by_link_random(s, login)
         self.cquit(Status.OK)
     
     def put(self, flag_id, flag, vuln):

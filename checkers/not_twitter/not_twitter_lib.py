@@ -4,6 +4,7 @@ from checklib import Status
 import requests
 import re
 import urllib
+from random import choice
 
 PORT = 3113
 MAX_FILESIZE = 1024
@@ -98,3 +99,10 @@ class CheckMachine:
         #print(uploads, filename_link)
         #print(filename_link in uploads)
         self.c.assert_in(filename_link, uploads, "incorrect uploads", status=status)
+
+    def check_upload_by_link_random(self, session, username, status=Status.MUMBLE):
+        with open("checkers/not_twitter/urls.txt", "r") as f:
+            lines = f.readlines()
+            link = choice(lines)
+            self.check_upload_by_link(session, link, username, status=status)
+            
