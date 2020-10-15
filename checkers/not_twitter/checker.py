@@ -4,7 +4,7 @@ from gevent import monkey
 monkey.patch_all()
 
 from not_twitter_lib import CheckMachine
-from checklib import BaseChecker, Status, get_initialized_session
+from checklib import BaseChecker, Status
 from checklib import rnd_username, rnd_password
 from checklib import cquit
 import secrets
@@ -29,7 +29,7 @@ class Checker(BaseChecker):
     def check(self):
         login = secrets.token_hex(10)
         password = secrets.token_hex(10)
-        s = get_initialized_session()
+        s = self.get_initialized_session()
         #check register
         self.mch.register(s, login, password)
         #check login
@@ -42,14 +42,14 @@ class Checker(BaseChecker):
     def put(self, flag_id, flag, vuln):
         login = secrets.token_hex(10)
         password = secrets.token_hex(10)
-        s = get_initialized_session()
+        s = self.get_initialized_session()
         self.mch.register(s, login, password)
         self.mch.login(s, login, password)
         link = self.mch.upload_text(s, flag)
         self.cquit(Status.OK, f'{login}', f'{login}:{password}:{link}')
 
     def get(self, flag_id, flag, vuln):
-        s = get_initialized_session()
+        s = self.get_initialized_session()
         u, p, link = flag_id.split(':')
         self.mch.login(s, u, p, Status.CORRUPT)
         self.mch.check_file_content_by_link(s, link, flag, Status.CORRUPT)
