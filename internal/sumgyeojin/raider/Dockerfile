@@ -1,6 +1,6 @@
 FROM disconnect3d/nsjail
 
-RUN apt -y update && apt -y install python3 python3-dev python3-pip
+RUN apt -y update && apt -y install python3 python3-dev python3-pip nasm
 
 ADD app/requirements.txt /requirements.txt
 

@@ -1,9 +1,9 @@
 import requests
 import os
 from checklib import *
-from nsjail_pg.nsjail import NSJailCommand
 
 PORT = 9090
+RAIDER = "http://127.0.0.1:5000"
 
 class CheckMachine:
     @property
@@ -27,32 +27,32 @@ class CheckMachine:
 
         return vmid
 
-    def get_vm(self, s, vmid):
+    def get_vm(self, s, vmid, status=Status.MUMBLE):
         r = s.get(f"{self.url}/{vmid}")
 
-        d = self.c.get_json(r, "Can't get vm")
-        self.c.assert_in("result", d, "Can't get vm")
+        d = self.c.get_json(r, "Can't get vm", status=status)
+        self.c.assert_in("result", d, "Can't get vm", status=status)
+        self.c.assert_eq(type(vmid), type(""), "Invalid response on vm get", status=status)
 
-        bc = d["result"]
-        self.c.assert_eq(type(vmid), type(""), "Invalid response on vm get")
+        return d["result"]
 
-        return bc
+    def run_write_to_file(self, s, bc, filename, string, status=Status.MUMBLE):
+        r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_write_file", json={
+            "filename": filename,
+            "bytecode": bc
+        })
 
-    def run_write_to_file(self, bc, filename, string):
-        path = f"/tmp{filename}"
-        with open(path, "w") as f:
-            f.write(string)
+        d = self.c.get_json(r, "Can't run vm", status=status)
+        self.c.assert_in("result", d, "Can't run vm", status=status)
+        self.c.assert_eq(d["result"], string, "Invalid vm result", status=status)
 
-        cmd = NSJailCommand(
-            cmd=['/runner', bc],
-            config='./runner.cfg',
-            other=[
-                '--bindmount', f"{path}:{filename}",
-                '--bindmount', "./runner:/runner"
-            ],
-        )
+    def run_read_from_file(self, s, bc, filename, string, status=Status.MUMBLE):
+        r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_read_file", json={
+            "filename": filename,
+            "bytecode": bc,
+            "string": string
+        })
 
-        res = cmd.run(output_limit=8192)
-        print(res)
-
-        os.remove(path)
+        d = self.c.get_json(r, "Can't run vm", status=status)
+        self.c.assert_in("result", d, "Can't run vm", status=status)
+        self.c.assert_eq(d["result"], string, "Invalid vm result", status=status)
