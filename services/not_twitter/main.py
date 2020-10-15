@@ -132,13 +132,22 @@ def uploaded_file(filename):
 
 @app.route('/uploads/')
 def file_listing():
-    limit = int(request.args.get('limit'))
-    if limit > MAX_FILE_COUNT_IN_LISTING:
-        message = "Limit is too big"
-        return render_template('message.html', message=message), 400
-    offset = int(request.args.get('offset'))
-    files = listdir_fileclass(offset, limit)
-    print(f"files {files}")
+    try:
+        limit = int(request.args.get('limit'))
+        if limit > MAX_FILE_COUNT_IN_LISTING:
+            message = "Limit is too big"
+            return render_template('message.html', message=message), 400
+        offset = int(request.args.get('offset'))
+    except TypeError:
+        limit = MAX_FILE_COUNT_IN_LISTING
+        offset=0
+    username = request.args.get('user')
+    print(f"uploads args: offset {offset}, limit {limit}, username {username}")
+    if username is None:
+        files = listdir_fileclass(offset, limit)
+    else:
+        files = listdir_fileclass_by_user(offset, limit, username)
+    print(f"files {[x.filename for x in files]}")
     return render_template('uploads.html', files=files)
 
 if __name__ == "__main__":

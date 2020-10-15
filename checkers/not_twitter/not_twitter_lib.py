@@ -64,13 +64,14 @@ class CheckMachine:
         self.c.assert_eq(file_content, expected_content, "Can't download text", status=status)
         #print(file_content == expected_content, file_content, expected_content)
 
-    def check_upload_by_link(self, session, link, status=Status.MUMBLE):
+    def check_upload_by_link(self, session, link, username, status=Status.MUMBLE):
         link_content = urllib.request.urlopen(link).read(MAX_FILESIZE).decode('utf-8')
         server_link = self._upload_file_by_link(session, link, status)
         link_content_on_server = self._download_file_by_link(session, server_link, status)
         self.c.assert_eq(link_content, link_content_on_server, "Can't upload file by link", status=status)
         #print(link_content_on_server == link_content)
-        self._check_filename_in_uploads_page(session, server_link, status=status)
+        #self._check_filename_in_uploads_page(session, server_link, status=status)
+        self._check_filename_in_user_uploads_page(session, server_link, username, status=status)
     
     def _get_uploads_list(self, s):
         limit = 128
@@ -78,9 +79,22 @@ class CheckMachine:
         uploads_html = s.get(self.url + f'/uploads?limit={limit}&offset={offset}').text
         files_info = find_fileinfo_regexp.findall(uploads_html)
         return[f"uploads/{x.split(': ')[0]}_{x.split(': ')[1]}" for x in files_info]
+    
+    def _get_uploads_list_by_user(self, s, username):
+        limit = 128
+        offset = 0
+        uploads_html = s.get(self.url + f'/uploads?limit={limit}&offset={offset}&user={username}').text
+        files_info = find_fileinfo_regexp.findall(uploads_html)
+        return[f"uploads/{x.split(': ')[0]}_{x.split(': ')[1]}" for x in files_info]
 
     def _check_filename_in_uploads_page(self, s, filename_link, status):
         uploads = self._get_uploads_list(s)
+        #print(uploads, filename_link)
+        #print(filename_link in uploads)
+        self.c.assert_in(filename_link, uploads, "incorrect uploads", status=status)
+    
+    def _check_filename_in_user_uploads_page(self, s, filename_link, username, status):
+        uploads = self._get_uploads_list_by_user(s, username)
         #print(uploads, filename_link)
         #print(filename_link in uploads)
         self.c.assert_in(filename_link, uploads, "incorrect uploads", status=status)
