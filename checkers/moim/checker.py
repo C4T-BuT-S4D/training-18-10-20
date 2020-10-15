@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
+from gevent import monkey
+
+monkey.patch_all()
+
 import sys
 import json
 import os
-from io import BytesIO
 from random import randint, choice
-
 import checklib
 from faker import Faker
+from moim_lib import *
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from moim_lib import *
 
 anime_img_urls = [
     'https://i.pinimg.com/236x/ce/17/c4/ce17c464f0680d0490752781d7c002be.jpg',
@@ -23,6 +24,8 @@ anime_img_urls = [
 
 
 class Checker(BaseChecker):
+    uses_attack_data = True
+
     def __init__(self, *args, **kwargs):
         super(Checker, self).__init__(*args, **kwargs)
         self.mch = CheckMachine(self)
@@ -72,7 +75,7 @@ class Checker(BaseChecker):
         self.assert_eq(meetings_data.get('title'), title, 'Failed to get user syncs', status=Status.MUMBLE)
         self.assert_eq(meetings_data.get('description'), desc, 'Failed to get user syncs', status=Status.MUMBLE)
 
-        client_sess = get_initialized_session()
+        client_sess = self.get_initialized_session()
 
         sync_info = self.mch.get_sync_info(client_sess, meeting_id)
         self.assert_eq(sync_info.get('author', dict()).get('email'), u, 'Failed to get sync info', status=Status.MUMBLE)
@@ -105,7 +108,7 @@ class Checker(BaseChecker):
         title = self.f.sentence(nb_words=1)
         desc = self.f.sentence(nb_words=3)
         meeting_data = self.create_meeting_with_image(desc, sess, title, capacity=3)
-        client_sess = get_initialized_session()
+        client_sess = self.get_initialized_session()
         meeting_id = meeting_data.get('id')
         member_data = self.mch.add_member(client_sess, meeting_id, flag)
         public_id = member_data.get('public_id')
@@ -140,7 +143,7 @@ class Checker(BaseChecker):
         self.assert_neq(member, None, 'Failed to get sync members', status=Status.CORRUPT)
         self.assert_eq(member.get('nickname'), flag, 'Failed to get sync members', status=Status.CORRUPT)
 
-        client_sess = get_initialized_session()
+        client_sess = self.get_initialized_session()
         ticket_data = self.mch.get_ticket_data(client_sess, data['public_id'])
         self.assert_eq(ticket_data.get('nickname'), flag, 'Failed to get ticket data', status=Status.CORRUPT)
         ticket_url = ticket_data.get('ticket_url')

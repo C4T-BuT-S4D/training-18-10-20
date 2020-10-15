@@ -23,14 +23,14 @@ class CheckMachine:
         email = email or rnd_username() + '@cbsctf.live'
         password = password or rnd_password()
 
-        sess = get_initialized_session()
+        sess = self.c.get_initialized_session()
 
         r = sess.post(f'{self.api_url}/register', json={'email': email, 'password': password})
         self.c.check_response(r, 'Could not register')
         return email, password, sess
 
     def login_user(self, email, password):
-        sess = get_initialized_session()
+        sess = self.c.get_initialized_session()
         r = sess.post(f'{self.api_url}/login', json={'email': email, 'password': password})
         self.c.check_response(r, 'Could not login')
         return sess
@@ -52,7 +52,7 @@ class CheckMachine:
 
     def list_latest_meetings(self, sess: requests.Session = None):
         if not sess:
-            sess = get_initialized_session()
+            sess = self.c.get_initialized_session()
         r = sess.get(f'{self.api_url}/syncs')
         self.c.check_response(r, 'Could not get latest syncs')
         return self.c.get_json(r, 'Could not get latest syncs. Invalid response type')
@@ -69,7 +69,7 @@ class CheckMachine:
 
     def add_member(self, sess: requests.Session, m_id, nickname):
         if not sess:
-            sess = get_initialized_session()
+            sess = self.c.get_initialized_session()
 
         r = sess.post(f'{self.api_url}/sync/{m_id}/join', json={'nickname': nickname})
         self.c.check_response(r, 'Could not add member to sync')
@@ -77,21 +77,21 @@ class CheckMachine:
 
     def get_ticket(self, sess: requests.Session, file_url):
         if not sess:
-            sess = get_initialized_session()
+            sess = self.c.get_initialized_session()
         r = sess.get(f'{self.url}{file_url}')
         self.c.check_response(r, 'Could not get ticket')
         return r
 
     def get_ticket_data(self, sess: requests.Session, public_id):
         if not sess:
-            sess = get_initialized_session()
+            sess = self.c.get_initialized_session()
         r = sess.get(f'{self.api_url}/ticket/' + public_id)
         self.c.check_response(r, 'Could not get ticket data')
         return self.c.get_json(r, 'Could not get ticket data. Invalid content type')
 
     def get_sync_info(self, sess: requests.Session, sync_id):
         if not sess:
-            sess = get_initialized_session()
+            sess = self.c.get_initialized_session()
         r = sess.get(f'{self.api_url}/sync/{sync_id}/info')
         self.c.check_response(r, 'Could not get sync info')
         return self.c.get_json(r, 'Could not get sync info. Invalid content type')
