@@ -46,7 +46,7 @@ class CheckMachine:
 
         d = self.c.get_json(r, "Can't run vm", status=status)
         self.c.assert_in("result", d, "Can't run vm", status=status)
-        self.c.assert_eq(d["result"], string, "Invalid vm result", status=status)
+        self.c.assert_eq(d["result"], string, "Invalid vm result on write", status=status)
 
     def run_read_from_file(self, s, bc, filename, string, status=Status.MUMBLE):
         r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_read_file", json={
@@ -55,6 +55,6 @@ class CheckMachine:
             "string": string
         })
 
-        d = self.c.get_json(r, "Can't run vm", status=status)
+        d = self.c.get_json(r, "Can't run vm on", status=status)
         self.c.assert_in("result", d, "Can't run vm", status=status)
-        self.c.assert_eq(d["result"], string, "Invalid vm result", status=status)
+        self.c.assert_eq(d["result"], string, "Invalid vm result on read", status=status)

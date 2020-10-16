@@ -1,7 +1,12 @@
 from copy import copy
-from math import copysign
 from random import randint, choices, choice, shuffle
 
+from fixedint import MutableInt64
+
+def copysign(a, b):
+    if b == 0:
+        return 0
+    return abs(a) * b // abs(b)
 
 def generate_number(registers, register, temp_register, target_value):
     registers = copy(registers)
@@ -15,7 +20,7 @@ def generate_number(registers, register, temp_register, target_value):
             to = choice([register, temp_register])
             fr = choice([register, temp_register])
             code += f"{op}{to}{fr}"
-            registers[to] = registers[fr]
+            registers[to] = MutableInt64(int(registers[fr]))
         elif op == 'i':
             tg = choice([register, temp_register])
             code += f"{op}{tg}"
@@ -46,7 +51,7 @@ def generate_number(registers, register, temp_register, target_value):
                 code += f"i{fr}"
                 registers[fr] += 1
             code += f"{op}{to}{fr}"
-            registers[to] = int(copysign(abs(registers[to]) // abs(registers[fr]), registers[to] * registers[fr]))
+            registers[to] = MutableInt64(copysign(abs(int(registers[to])) // abs(int(registers[fr])), int(registers[to]) * int(registers[fr])))
         elif op == '&':
             to = choice([register, temp_register])
             fr = choice([register, temp_register])
@@ -69,14 +74,14 @@ def generate_number(registers, register, temp_register, target_value):
 
     if abs(registers[register] - target_value) > 300:
         code += f"m{register}{temp_register}"
-        registers[register] = registers[temp_register]
+        registers[register] = MutableInt64(int(registers[temp_register]))
         if registers[temp_register] == 0:
             code += f"i{register}i{temp_register}"
             registers[register] += 1
             registers[temp_register] += 1
         code += f"/{register}{temp_register}"
-        registers[register] = int(copysign(abs(registers[register]) // abs(registers[temp_register]),
-                                           registers[register] * registers[temp_register]))
+        registers[register] = MutableInt64(copysign(abs(int(registers[register])) // abs(int(registers[temp_register])),
+                                           int(registers[register]) * int(registers[temp_register])))
 
     while registers[register] < target_value:
         code += f"i{register}"
@@ -196,10 +201,10 @@ def generate_read_from_file(registers, target_filename, target_cnt):
 
 def write_to_file(filename, string):
     registers = {
-        'r': 0,
-        'j': 0,
-        'q': 0,
-        'l': 0,
+        'r': MutableInt64(0),
+        'j': MutableInt64(0),
+        'q': MutableInt64(0),
+        'l': MutableInt64(0),
         'o': '',
         't': '',
         'd': ''
@@ -209,10 +214,10 @@ def write_to_file(filename, string):
 
 def read_from_file(filename, cnt):
     registers = {
-        'r': 0,
-        'j': 0,
-        'q': 0,
-        'l': 0,
+        'r': MutableInt64(0),
+        'j': MutableInt64(0),
+        'q': MutableInt64(0),
+        'l': MutableInt64(0),
         'o': '',
         't': '',
         'd': ''

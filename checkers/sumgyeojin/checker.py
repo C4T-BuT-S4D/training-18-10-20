@@ -22,7 +22,6 @@ class Checker(BaseChecker):
         try:
             super(Checker, self).action(action, *args, **kwargs)
         except requests.exceptions.ConnectionError:
-            raise
             self.cquit(Status.DOWN, 'Connection error', 'Got requests connection error')
 
     def check(self):
