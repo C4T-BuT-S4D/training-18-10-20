@@ -43,14 +43,11 @@ class Checker(BaseChecker):
         return d
 
     def extract_text(self, file_resp):
-        try:
-            ntf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-            ntf.write(file_resp.content)
-            ntf.close()
-            data = textract.process(ntf.name, encoding='utf-8')
-            os.unlink(ntf.name)
-        except Exception:
-            return b''
+        ntf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+        ntf.write(file_resp.content)
+        ntf.close()
+        data = textract.process(ntf.name, encoding='utf-8')
+        os.unlink(ntf.name)
         return data
 
     def create_meeting_with_image(self, desc, sess, title, capacity):
@@ -70,9 +67,14 @@ class Checker(BaseChecker):
                        status=Status.MUMBLE)
         self.assert_gt(int(ticket_data_resp.headers.get('Content-Length', 0)), 0, 'Failed to download ticket',
                        status=Status.MUMBLE)
-        self.assert_in(flag.encode(), self.extract_text(ticket_data_resp), 'Failed to read ticket data',
-                       status=Status.MUMBLE,
-                       )
+        try:
+            extracted = self.extract_text(ticket_data_resp)
+            if flag.encode() not in extracted:
+                self.cquit(Status.MUMBLE, 'Failed to read ticket data', extracted)
+            self.assert_in(flag.encode(), extracted, 'Failed to read ticket data', status=Status.MUMBLE)
+
+        except Exception as e:
+            self.cquit(Status.MUMBLE, 'Failed to read ticket data', str(e))
 
     def check_response(self, r: requests.Response, public: str, status=checklib.status.Status.MUMBLE):
         try:
@@ -119,7 +121,7 @@ class Checker(BaseChecker):
         public_id = member_data.get('public_id')
         self.assert_neq(public_id, None, 'Failed to add sync member', status=Status.MUMBLE)
 
-        for _ in range(5):
+        for _ in range(10):
             sleep(0.5)
             ticket_info = self.mch.get_ticket_data(client_sess, public_id)
             self.assert_eq(ticket_info.get('nickname'), fake_flag, 'Failed to get ticket data', status=Status.MUMBLE)
