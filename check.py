@@ -156,12 +156,7 @@ class Service(BaseValidator):
         cnt_threads = max(1, min(MAX_THREADS, RUNS // 10))
         self._log(f'starting {cnt_threads} checker threads')
         with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor') as executor:
-            futures = (
-                executor.submit(self._checker.run_all, run + 1)
-                for run in range(RUNS)
-            )
-            for future in futures:
-                future.result()
+            executor.map(self._checker.run_all, range(1, RUNS + 1))
 
     def __str__(self):
         return f'service {self._name}'
