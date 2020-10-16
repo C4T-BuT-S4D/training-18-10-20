@@ -69,7 +69,7 @@ class Checker(BaseValidator):
             p = subprocess.run(command, capture_output=True, check=False, timeout=self._timeout)
             end = time.monotonic()
         except subprocess.TimeoutExpired:
-            self._log('command timeout expired')
+            self._assert(False, 'command timeout expired')
             raise
 
         elapsed = end - start
