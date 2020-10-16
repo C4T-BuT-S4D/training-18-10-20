@@ -45,5 +45,7 @@ class RendererJob extends Job
         $renderer->render($tempFile, $ticketFile);
 
         unlink($tempFile);
+
+        file_put_contents($storage->ticketRenderFinishedPath($this->publicId), '');
     }
 }
