@@ -5,6 +5,10 @@ import requests
 import re
 import urllib
 from random import choice
+from pathlib import Path
+
+BASE_DIR = Path(__file__).absolute().resolve().parent
+
 
 PORT = 3113
 MAX_FILESIZE = 1024
@@ -101,7 +105,8 @@ class CheckMachine:
         self.c.assert_in(filename_link, uploads, "incorrect uploads", status=status)
 
     def check_upload_by_link_random(self, session, username, status=Status.MUMBLE):
-        with open("checkers/not_twitter/urls.txt", "r") as f:
+        local_path = BASE_DIR / f'urls.txt'
+        with open(local_path, "r") as f:
             lines = f.readlines()
             link = choice(lines)
             print("link: " + link)
