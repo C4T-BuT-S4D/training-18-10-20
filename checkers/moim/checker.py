@@ -169,7 +169,7 @@ class Checker(BaseChecker):
 
         client_sess = self.mch.login_user(data['cu'], data['cp'])
 
-        for _ in range(5):
+        for _ in range(10):
             sleep(0.5)
             ticket_data = self.mch.get_ticket_data(client_sess, data['public_id'])
             self.assert_eq(ticket_data.get('nickname'), flag, 'Failed to get ticket data', status=Status.CORRUPT)
