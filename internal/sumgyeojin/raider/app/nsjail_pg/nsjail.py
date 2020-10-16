@@ -1,10 +1,9 @@
-from contextlib import closing
-
 import os
 import tempfile
+import typing
+from contextlib import closing
 from pathlib import Path
 from typing import List, Optional, IO
-import typing
 
 from .serializers import RunResult
 from .utils import run_command_fast, force_printable
@@ -13,10 +12,11 @@ CommandFile = typing.Union[int, Path, None]
 
 
 class NSJailCommand:
-    def __init__(self, cmd: List[str], config: Optional[str] = None, other: Optional[List[str]] = None):
+    def __init__(self, cmd: List[str], config: Optional[str] = None, *, logger, other: Optional[List[str]] = None):
         self.cmd = cmd
         self.config = config
         self.other = other
+        self.logger = logger
 
     def _create_command(self, log_file: str):
         result = ['nsjail', '--log', log_file]
@@ -64,6 +64,7 @@ class NSJailCommand:
 
         command = self._create_command(log_file=jail_logfile.name)
 
+        self.logger.info(f'Running command {command} with stdin={stdin} stdout={stdout} stderr={stderr}')
         stats = run_command_fast(command, stdin=stdin, stdout=_stdout, stderr=_stderr)
 
         stdout_content = b''
@@ -98,5 +99,7 @@ class NSJailCommand:
             stderr=force_printable(stderr_content),
             run_log=force_printable(jail_log_content),
         )
+
+        self.logger.info(f'Command {command} result: {result}')
 
         return result

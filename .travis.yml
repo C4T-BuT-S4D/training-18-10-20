@@ -4,13 +4,11 @@ python:
   - "3.7"
 
 env:
-  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=10  SERVICE=<your first service>
-  #  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=10  SERVICE=<your second service>
+  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=10  SERVICE=sumgyeojin
 
   - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=20  SERVICE=all
 
-  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=200  SERVICE=<your first service>
-#  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=200  SERVICE=<your second service>
+  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=200  SERVICE=sumgyeojin
 
 services:
   - docker
@@ -27,6 +25,7 @@ install:
   - pip install -r checkers/requirements.txt
   - ./check.py list
   - ./check.py up
+  - docker-compose -f internal/sumgyeojin/raider/docker-compose.yml up --build -d
 
 before_script:
   - sleep 60

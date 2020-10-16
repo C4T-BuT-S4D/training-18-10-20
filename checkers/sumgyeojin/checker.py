@@ -10,11 +10,11 @@ from checklib import *
 from sumgyeojin_lib import CheckMachine
 from generate_bytecode import write_to_file, read_from_file
 
+
 class Checker(BaseChecker):
+    timeout = 15
+
     def __init__(self, *args, **kwargs):
-        uses_attack_data = False
-        timeout = 15
-        vulns = 1
         super(Checker, self).__init__(*args, **kwargs)
         self.mch = CheckMachine(self)
 
@@ -22,6 +22,7 @@ class Checker(BaseChecker):
         try:
             super(Checker, self).action(action, *args, **kwargs)
         except requests.exceptions.ConnectionError:
+            raise
             self.cquit(Status.DOWN, 'Connection error', 'Got requests connection error')
 
     def check(self):
@@ -63,6 +64,7 @@ class Checker(BaseChecker):
         self.mch.run_read_from_file(s, bc, flag_filename, flag, Status.CORRUPT)
 
         self.cquit(Status.OK)
+
 
 if __name__ == '__main__':
     c = Checker(sys.argv[2])

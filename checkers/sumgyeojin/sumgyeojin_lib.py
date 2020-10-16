@@ -1,9 +1,10 @@
-import requests
 import os
+
 from checklib import *
 
 PORT = 9090
-RAIDER = "http://127.0.0.1:5000"
+RAIDER = os.getenv('RAIDER', default="http://127.0.0.1:5000")
+
 
 class CheckMachine:
     @property
