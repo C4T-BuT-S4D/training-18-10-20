@@ -17,6 +17,7 @@ from typing import List, Tuple
 BASE_DIR = Path(__file__).resolve().absolute().parent
 SERVICES_PATH = BASE_DIR / 'services'
 CHECKERS_PATH = BASE_DIR / 'checkers'
+MAX_THREADS = int(os.getenv('MAX_THREADS', default=16))
 RUNS = int(os.getenv('RUNS', default=10))
 HOST = os.getenv('HOST', default='127.0.0.1')
 OUT_LOCK = Lock()
@@ -107,8 +108,8 @@ class Checker(BaseValidator):
         cmd = [str(self._exe_path), 'get', HOST, flag_id, flag, str(vuln)]
         self._run_command(cmd)
 
-    def run_all(self):
-        self._log('running all actions')
+    def run_all(self, step: int):
+        self._log(f'running all actions (run {step} of {RUNS})')
         self.check()
 
         for vuln in range(1, self._vulns + 1):
@@ -152,12 +153,12 @@ class Service(BaseValidator):
     def validate_checker(self):
         self._log('validating checker')
 
-        cnt_threads = max(1, min(8, RUNS // 16))
-
+        cnt_threads = max(1, min(MAX_THREADS, RUNS // 10))
+        self._log(f'starting {cnt_threads} checker threads')
         with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor') as executor:
             futures = (
-                executor.submit(self._checker.run_all)
-                for _ in range(RUNS)
+                executor.submit(self._checker.run_all, run + 1)
+                for run in range(RUNS)
             )
             for future in futures:
                 future.result()
