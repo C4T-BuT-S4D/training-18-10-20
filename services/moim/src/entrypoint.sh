@@ -5,5 +5,7 @@
 cd /var/www/html &&\
 php artisan migrate --force &&\
 chown -R www-data /storage &&\
-php artisan queue:work --sleep=1 --max-jobs=40 &
+for i in $(seq 1 $QUEUE_WORKERS);
+do php artisan queue:work --sleep=1  &
+done
 apache2-foreground
