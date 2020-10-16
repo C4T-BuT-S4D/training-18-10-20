@@ -1,2 +1,5 @@
 checklib
+pwntools
+Faker
 gevent
+textract

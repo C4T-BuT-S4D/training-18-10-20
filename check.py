@@ -30,10 +30,7 @@ def generate_flag(name):
 class BaseValidator:
     def _log(self, message: str):
         with OUT_LOCK:
-            print(
-                f'[{current_thread().name}] {str(self)}: {message}',
-                end='' if message.endswith('\n') else '\n',
-            )
+            print(f'[{current_thread().name}] {str(self)}: {message}')
 
     def _assert(self, cond, message):
         if not cond:
@@ -78,7 +75,9 @@ class Checker(BaseValidator):
         out = p.stdout.decode()
         err = p.stderr.decode()
 
-        self._log(f'time: {elapsed:.2f}s\nstdout:\n{out}\nstderr:\n{err}')
+        out_s = out.rstrip('\n')
+        err_s = err.rstrip('\n')
+        self._log(f'time: {elapsed:.2f}s\nstdout:\n{out_s}\nstderr:\n{err_s}')
         self._assert(p.returncode == 101, f'bad return code: {p.returncode}')
 
         return out, err
