@@ -49,4 +49,12 @@ class AppStorage
     {
         return $this->join($this->ticketBase, $id . '.pdf');
     }
+
+    public function ticketRenderFinishedPath($id) {
+        return $this->join($this->ticketBase, $id . '.ready');
+    }
+
+    public function ticketExists($id) {
+        return file_exists($this->ticketRenderFinishedPath($id)) && file_exists($this->ticketPath($id));
+    }
 }

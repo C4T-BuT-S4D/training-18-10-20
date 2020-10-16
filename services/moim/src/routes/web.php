@@ -19,8 +19,6 @@ $router->get('/', function () use ($router) {
 
 $router->post('/api/register', 'AuthController@register');
 $router->post('/api/login', 'AuthController@login');
-$router->post('/api/sync/{id}/join', 'SyncController@addMember');
-$router->get('/api/ticket/{id}', 'SyncController@ticket');
 $router->get('/api/syncs', 'SyncController@latestSyncs');
 $router->get('/api/sync/{id}/info', 'SyncController@getInfo');
 
@@ -28,4 +26,7 @@ $router->group(['middleware' => ['auth:api']], function () use ($router) {
     $router->get('/api/sync', 'SyncController@list');
     $router->post('/api/sync', 'SyncController@addSync');
     $router->get('/api/sync/{id}', 'SyncController@get');
+    $router->post('/api/sync/{id}/join', 'SyncController@addMember');
+    $router->get('/api/sync/{id}/challenge', 'SyncController@challenge');
+    $router->get('/api/ticket/{id}', 'SyncController@ticket');
 });
