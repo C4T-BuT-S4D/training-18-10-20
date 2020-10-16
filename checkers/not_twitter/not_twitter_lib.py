@@ -6,6 +6,7 @@ import re
 import urllib
 from random import choice
 from pathlib import Path
+import sys
 
 BASE_DIR = Path(__file__).absolute().resolve().parent
 
@@ -109,6 +110,6 @@ class CheckMachine:
         with open(local_path, "r") as f:
             lines = f.readlines()
             link = choice(lines)
-            print("link: " + link)
+            sys.stderr.write(f"link: {link}")
             self.check_upload_by_link(session, link, username, status=status)
             
