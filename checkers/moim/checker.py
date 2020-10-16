@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import tempfile
+import time
 
 from gevent import monkey
 
@@ -120,11 +121,15 @@ class Checker(BaseChecker):
 
         public_id = member_data.get('public_id')
         self.assert_neq(public_id, None, 'Failed to add sync member', status=Status.MUMBLE)
-        ticket_url = member_data.get('ticket_url')
-        self.assert_neq(ticket_url, None, 'Failed to add sync member', status=Status.MUMBLE)
 
-        ticket_data_resp = self.mch.get_ticket(client_sess, ticket_url)
-        self.check_ticket_content(fake_flag, ticket_data_resp)
+        time.sleep(2)
+
+        ticket_info = self.mch.get_ticket_data(client_sess, public_id)
+        self.assert_eq(ticket_info.get('nickname'), fake_flag, 'Failed to get ticket data', status=Status.MUMBLE)
+        # Only check if it's already rendered.
+        if ticket_info.get('ticket_url'):
+            ticket_data_resp = self.mch.get_ticket(client_sess, ticket_info.get('ticket_url'))
+            self.check_ticket_content(fake_flag, ticket_data_resp)
 
         members_data = self.mch.list_members(sess, meeting_id)
         member = self.remap(members_data, key='public_id').get(public_id)
@@ -166,9 +171,10 @@ class Checker(BaseChecker):
         client_sess = self.get_initialized_session()
         ticket_data = self.mch.get_ticket_data(client_sess, data['public_id'])
         self.assert_eq(ticket_data.get('nickname'), flag, 'Failed to get ticket data', status=Status.CORRUPT)
-        ticket_url = ticket_data.get('ticket_url')
-        ticket_data_resp = self.mch.get_ticket(client_sess, ticket_url)
-        self.check_ticket_content(flag, ticket_data_resp)
+        # Only check if it's already rendered.
+        if ticket_data.get('ticket_url'):
+            ticket_data_resp = self.mch.get_ticket(client_sess, ticket_data.get('ticket_url'))
+            self.check_ticket_content(flag, ticket_data_resp)
         self.cquit(Status.OK)
 
 

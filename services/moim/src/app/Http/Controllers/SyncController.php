@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 
+use App\Jobs\RendererJob;
 use App\Library\AppStorage;
 use App\Library\Renderer;
 use App\Services\SyncService;
@@ -146,26 +147,10 @@ class SyncController extends Controller
             return \response()->json(['error' => 'Failed to find sync template.'])->setStatusCode(503);
         }
 
-        $templateData = file_get_contents($template);
-
-        $templateData = str_replace("##NICKNAME##", (new HtmlBuilder())->text($nickname), $templateData);
-
-        $tempFile = tempnam('/tmp', "TICKET_HTML") . ".html";
-
-        file_put_contents($tempFile, $templateData);
-
         $public_id = $data['public_id'];
+        dispatch(new RendererJob($template, $nickname, $public_id));
 
-        $ticketFile = $storage->ticketPath($public_id);
-
-        /** @var Renderer $renderer */
-        $renderer = app(Renderer::class);
-
-        $msg = $renderer->render($tempFile, $ticketFile);
-
-        unlink($tempFile);
-
-        return \response()->json(['public_id' => $public_id, 'message' => $msg, 'ticket_url' => '/tickets/' . $public_id . '.pdf']);
+        return \response()->json(['public_id' => $public_id, 'message' => 'You ticket will be rendered soon']);
     }
 
     public function ticket($id)
@@ -181,10 +166,18 @@ class SyncController extends Controller
             'title' => $sync->title,
             'description' => $sync->description,
         ];
-        return response()->json([
-                'sync' => $syncData, 'nickname' => $info->nickname, 'public_id' => $publicId,
-                'ticket_url' => '/tickets/' . $publicId . '.pdf']
-        );
+
+        $jsonData = [
+            'sync' => $syncData, 'nickname' => $info->nickname, 'public_id' => $publicId,
+        ];
+
+        /** @var AppStorage $storage */
+        $storage = app(AppStorage::class);
+        if ($storage->ticketExists($publicId)) {
+            $jsonData['ticket_url'] = '/tickets/' . $publicId . '.pdf';
+        }
+
+        return response()->json($jsonData);
     }
 
     public function latestSyncs()
