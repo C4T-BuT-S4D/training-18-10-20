@@ -22,6 +22,7 @@
 </template>
 <script>
     import Layout from './Layout';
+    import {sha256} from "js-sha256";
 
     export default {
         components: {
@@ -34,6 +35,7 @@
                 syncId: null,
                 syncName: null,
                 syncDescription: null,
+                challenge: null,
                 capacity: null,
                 author_email: null,
                 error: null,
@@ -44,6 +46,7 @@
         async mounted() {
             this.syncId = this.$route.params.syncId;
             this.loadTicket();
+            this.getChallenge();
         },
         methods: {
             handleDismiss() {
@@ -61,12 +64,32 @@
                     this.errorVisible = true;
                 }
             },
+            async getChallenge() {
+                try {
+                    let res = await this.$http.get(`sync/${this.syncId}/challenge`);
+                    this.challenge = res.data.challenge;
+                } catch (error) {
+                    this.error = error.response.data.error;
+                    this.errorVisible = true;
+                }
+            },
+            mineChallenge() {
+                for (let i = 0; i < 100000000000000; i++) {
+                    let str = this.challenge + i.toString();
+                    if (sha256(str).startsWith('00000')) {
+                        return i.toString();
+                    }
+                }
+                return '';
+            },
             async join(event) {
                 try {
                     event.preventDefault();
                     this.isLoading = true;
                     let res = await this.$http.post(`sync/${this.syncId}/join`, {
                         nickname: this.nickName,
+                        challenge_answer: this.mineChallenge(),
+
                     });
                     this.isLoading = false;
                     this.$router.push({name: 'Details', params: {publicId: res.data.public_id}}).catch(() => {

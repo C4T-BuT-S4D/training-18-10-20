@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 import tempfile
-import time
 
-from gevent import monkey
+from gevent import monkey, sleep
 
 monkey.patch_all()
 
 import sys
-import json
-import os
 import textract
 from random import randint, choice
 import checklib
@@ -111,7 +108,7 @@ class Checker(BaseChecker):
         self.assert_eq(meetings_data.get('title'), title, 'Failed to get user syncs', status=Status.MUMBLE)
         self.assert_eq(meetings_data.get('description'), desc, 'Failed to get user syncs', status=Status.MUMBLE)
 
-        client_sess = self.get_initialized_session()
+        _, _, client_sess = self.mch.register_user()
 
         sync_info = self.mch.get_sync_info(client_sess, meeting_id)
         self.assert_eq(sync_info.get('author', dict()).get('email'), u, 'Failed to get sync info', status=Status.MUMBLE)
@@ -122,7 +119,7 @@ class Checker(BaseChecker):
         public_id = member_data.get('public_id')
         self.assert_neq(public_id, None, 'Failed to add sync member', status=Status.MUMBLE)
 
-        time.sleep(2)
+        sleep(2)
 
         ticket_info = self.mch.get_ticket_data(client_sess, public_id)
         self.assert_eq(ticket_info.get('nickname'), fake_flag, 'Failed to get ticket data', status=Status.MUMBLE)
@@ -145,7 +142,7 @@ class Checker(BaseChecker):
         title = self.f.sentence(nb_words=1)
         desc = self.f.sentence(nb_words=3)
         meeting_data = self.create_meeting_with_image(desc, sess, title, capacity=3)
-        client_sess = self.get_initialized_session()
+        cu, cp, client_sess = self.mch.register_user()
         meeting_id = meeting_data.get('id')
         member_data = self.mch.add_member(client_sess, meeting_id, flag)
         public_id = member_data.get('public_id')
@@ -154,7 +151,9 @@ class Checker(BaseChecker):
             'u': u,
             'p': p,
             'public_id': public_id,
-            'm_id': meeting_id
+            'm_id': meeting_id,
+            'cu': cu,
+            'cp': cp,
         }
         self.cquit(Status.OK, f'sync_{meeting_id}', json.dumps(full_data))
 
@@ -168,7 +167,8 @@ class Checker(BaseChecker):
         self.assert_neq(member, None, 'Failed to get sync members', status=Status.CORRUPT)
         self.assert_eq(member.get('nickname'), flag, 'Failed to get sync members', status=Status.CORRUPT)
 
-        client_sess = self.get_initialized_session()
+        client_sess = self.mch.login_user(data['cu'], data['cp'])
+
         ticket_data = self.mch.get_ticket_data(client_sess, data['public_id'])
         self.assert_eq(ticket_data.get('nickname'), flag, 'Failed to get ticket data', status=Status.CORRUPT)
         # Only check if it's already rendered.

@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Jobs\RendererJob;
 use App\Library\AppStorage;
 use App\Library\Renderer;
+use App\Services\ChallengesService;
 use App\Services\SyncService;
 use App\Services\UserService;
 use Illuminate\Http\Request;
@@ -26,11 +27,16 @@ class SyncController extends Controller
      * @var UserService
      */
     private $userService;
+    /**
+     * @var ChallengesService
+     */
+    private $challengesService;
 
-    public function __construct(SyncService $service, UserService $us)
+    public function __construct(SyncService $service, UserService $us, ChallengesService $challengesService)
     {
         $this->syncService = $service;
         $this->userService = $us;
+        $this->challengesService = $challengesService;
     }
 
     public function addSync(Request $request)
@@ -124,15 +130,34 @@ class SyncController extends Controller
         return response()->json($this->syncService->listMembers($sync->id));
     }
 
+    public function challenge()
+    {
+        $user = Auth::user();
+        $challenge = $this->challengesService->generate($user->id);
+        if (!$challenge) {
+            return response()->json(['error' => "Failed to generate challenge"])->setStatusCode(412);
+        }
+        return response()->json(['challenge' => $challenge]);
+    }
+
     public function addMember($id)
     {
+        $user_id = Auth::user()->id;
+        // You can't change the challenge as it is used by checker and frontend.
+        $answer = \request('challenge_answer');
+        if (!$this->challengesService->validate($user_id, $answer)) {
+            return response()->json(['error' => "Invalid challenge answer"])->setStatusCode(429);
+        }
+
         $sync = $this->syncService->getSyncById($id);
         if (!$sync) {
             return response()->json(['error' => "Sync not found"])->setStatusCode(404);
         }
+
         $this->validate(\request(), [
             'nickname' => 'required|string|between:3,50',
         ]);
+
         $nickname = \request('nickname');
         $data = $this->syncService->addMember($sync, $nickname);
         if (!$data) {
@@ -149,7 +174,6 @@ class SyncController extends Controller
 
         $public_id = $data['public_id'];
         dispatch(new RendererJob($template, $nickname, $public_id));
-
         return \response()->json(['public_id' => $public_id, 'message' => 'You ticket will be rendered soon']);
     }
 
