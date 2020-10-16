@@ -63,8 +63,9 @@ class NSJailCommand:
         jail_logfile = tempfile.NamedTemporaryFile(delete=True)
 
         command = self._create_command(log_file=jail_logfile.name)
+        log_cmd = str(command)[:128]
 
-        self.logger.info(f'Running command {command} with stdin={stdin} stdout={stdout} stderr={stderr}')
+        self.logger.info(f'Running command {log_cmd} with stdin={stdin} stdout={stdout} stderr={stderr}')
         stats = run_command_fast(command, stdin=stdin, stdout=_stdout, stderr=_stderr)
 
         stdout_content = b''
@@ -100,6 +101,6 @@ class NSJailCommand:
             run_log=force_printable(jail_log_content),
         )
 
-        self.logger.info(f'Command {command} result: {result}')
+        self.logger.info(f'Command {log_cmd} result: {result}')
 
         return result
