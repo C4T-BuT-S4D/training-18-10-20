@@ -104,5 +104,6 @@ class CheckMachine:
         with open("checkers/not_twitter/urls.txt", "r") as f:
             lines = f.readlines()
             link = choice(lines)
+            print("link: " + link)
             self.check_upload_by_link(session, link, username, status=status)
             
