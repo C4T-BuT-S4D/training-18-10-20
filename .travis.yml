@@ -36,7 +36,7 @@ before_script:
   - sleep 60
 
 script:
-  - ./check.py check
+  - MAX_THREADS=8 ./check.py check
 
 after_script:
   - ./check.py down
