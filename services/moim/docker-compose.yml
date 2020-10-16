@@ -4,6 +4,7 @@ services:
     build: src
     environment:
       - STORAGE_BASE_PATH=/storage
+      - QUEUE_WORKERS=8
     volumes:
       - "./data:/storage"
     depends_on:

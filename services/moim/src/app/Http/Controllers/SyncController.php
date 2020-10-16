@@ -4,8 +4,10 @@
 namespace App\Http\Controllers;
 
 
+use App\Jobs\RendererJob;
 use App\Library\AppStorage;
 use App\Library\Renderer;
+use App\Services\ChallengesService;
 use App\Services\SyncService;
 use App\Services\UserService;
 use Illuminate\Http\Request;
@@ -25,11 +27,16 @@ class SyncController extends Controller
      * @var UserService
      */
     private $userService;
+    /**
+     * @var ChallengesService
+     */
+    private $challengesService;
 
-    public function __construct(SyncService $service, UserService $us)
+    public function __construct(SyncService $service, UserService $us, ChallengesService $challengesService)
     {
         $this->syncService = $service;
         $this->userService = $us;
+        $this->challengesService = $challengesService;
     }
 
     public function addSync(Request $request)
@@ -123,15 +130,34 @@ class SyncController extends Controller
         return response()->json($this->syncService->listMembers($sync->id));
     }
 
+    public function challenge()
+    {
+        $user = Auth::user();
+        $challenge = $this->challengesService->generate($user->id);
+        if (!$challenge) {
+            return response()->json(['error' => "Failed to generate challenge"])->setStatusCode(412);
+        }
+        return response()->json(['challenge' => $challenge]);
+    }
+
     public function addMember($id)
     {
+        $user_id = Auth::user()->id;
+        // You can't change the challenge as it is used by checker and frontend.
+        $answer = \request('challenge_answer');
+        if (!$this->challengesService->validate($user_id, $answer)) {
+            return response()->json(['error' => "Invalid challenge answer"])->setStatusCode(429);
+        }
+
         $sync = $this->syncService->getSyncById($id);
         if (!$sync) {
             return response()->json(['error' => "Sync not found"])->setStatusCode(404);
         }
+
         $this->validate(\request(), [
             'nickname' => 'required|string|between:3,50',
         ]);
+
         $nickname = \request('nickname');
         $data = $this->syncService->addMember($sync, $nickname);
         if (!$data) {
@@ -146,26 +172,9 @@ class SyncController extends Controller
             return \response()->json(['error' => 'Failed to find sync template.'])->setStatusCode(503);
         }
 
-        $templateData = file_get_contents($template);
-
-        $templateData = str_replace("##NICKNAME##", (new HtmlBuilder())->text($nickname), $templateData);
-
-        $tempFile = tempnam('/tmp', "TICKET_HTML") . ".html";
-
-        file_put_contents($tempFile, $templateData);
-
         $public_id = $data['public_id'];
-
-        $ticketFile = $storage->ticketPath($public_id);
-
-        /** @var Renderer $renderer */
-        $renderer = app(Renderer::class);
-
-        $msg = $renderer->render($tempFile, $ticketFile);
-
-        unlink($tempFile);
-
-        return \response()->json(['public_id' => $public_id, 'message' => $msg, 'ticket_url' => '/tickets/' . $public_id . '.pdf']);
+        dispatch(new RendererJob($template, $nickname, $public_id));
+        return \response()->json(['public_id' => $public_id, 'message' => 'You ticket will be rendered soon']);
     }
 
     public function ticket($id)
@@ -181,10 +190,18 @@ class SyncController extends Controller
             'title' => $sync->title,
             'description' => $sync->description,
         ];
-        return response()->json([
-                'sync' => $syncData, 'nickname' => $info->nickname, 'public_id' => $publicId,
-                'ticket_url' => '/tickets/' . $publicId . '.pdf']
-        );
+
+        $jsonData = [
+            'sync' => $syncData, 'nickname' => $info->nickname, 'public_id' => $publicId,
+        ];
+
+        /** @var AppStorage $storage */
+        $storage = app(AppStorage::class);
+        if ($storage->ticketExists($publicId)) {
+            $jsonData['ticket_url'] = '/tickets/' . $publicId . '.pdf';
+        }
+
+        return response()->json($jsonData);
     }
 
     public function latestSyncs()

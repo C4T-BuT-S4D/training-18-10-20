@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 import tempfile
 
-from gevent import monkey
+from gevent import monkey, sleep
 
 monkey.patch_all()
 
 import sys
-import json
-import os
 import textract
 from random import randint, choice
 import checklib
@@ -45,14 +43,11 @@ class Checker(BaseChecker):
         return d
 
     def extract_text(self, file_resp):
-        try:
-            ntf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-            ntf.write(file_resp.content)
-            ntf.close()
-            data = textract.process(ntf.name, encoding='utf-8')
-            os.unlink(ntf.name)
-        except Exception:
-            return b''
+        ntf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+        ntf.write(file_resp.content)
+        ntf.close()
+        data = textract.process(ntf.name, encoding='utf-8')
+        os.unlink(ntf.name)
         return data
 
     def create_meeting_with_image(self, desc, sess, title, capacity):
@@ -72,9 +67,14 @@ class Checker(BaseChecker):
                        status=Status.MUMBLE)
         self.assert_gt(int(ticket_data_resp.headers.get('Content-Length', 0)), 0, 'Failed to download ticket',
                        status=Status.MUMBLE)
-        self.assert_in(flag.encode(), self.extract_text(ticket_data_resp), 'Failed to read ticket data',
-                       status=Status.MUMBLE,
-                       )
+        try:
+            extracted = self.extract_text(ticket_data_resp)
+            if flag.encode() not in extracted:
+                self.cquit(Status.MUMBLE, 'Failed to read ticket data', extracted)
+            self.assert_in(flag.encode(), extracted, 'Failed to read ticket data', status=Status.MUMBLE)
+
+        except Exception as e:
+            self.cquit(Status.MUMBLE, 'Failed to read ticket data', str(e))
 
     def check_response(self, r: requests.Response, public: str, status=checklib.status.Status.MUMBLE):
         try:
@@ -110,7 +110,7 @@ class Checker(BaseChecker):
         self.assert_eq(meetings_data.get('title'), title, 'Failed to get user syncs', status=Status.MUMBLE)
         self.assert_eq(meetings_data.get('description'), desc, 'Failed to get user syncs', status=Status.MUMBLE)
 
-        client_sess = self.get_initialized_session()
+        _, _, client_sess = self.mch.register_user()
 
         sync_info = self.mch.get_sync_info(client_sess, meeting_id)
         self.assert_eq(sync_info.get('author', dict()).get('email'), u, 'Failed to get sync info', status=Status.MUMBLE)
@@ -120,11 +120,15 @@ class Checker(BaseChecker):
 
         public_id = member_data.get('public_id')
         self.assert_neq(public_id, None, 'Failed to add sync member', status=Status.MUMBLE)
-        ticket_url = member_data.get('ticket_url')
-        self.assert_neq(ticket_url, None, 'Failed to add sync member', status=Status.MUMBLE)
 
-        ticket_data_resp = self.mch.get_ticket(client_sess, ticket_url)
-        self.check_ticket_content(fake_flag, ticket_data_resp)
+        for _ in range(10):
+            sleep(0.5)
+            ticket_info = self.mch.get_ticket_data(client_sess, public_id)
+            self.assert_eq(ticket_info.get('nickname'), fake_flag, 'Failed to get ticket data', status=Status.MUMBLE)
+            if ticket_info.get('ticket_url'):
+                ticket_data_resp = self.mch.get_ticket(client_sess, ticket_info.get('ticket_url'))
+                self.check_ticket_content(fake_flag, ticket_data_resp)
+                break
 
         members_data = self.mch.list_members(sess, meeting_id)
         member = self.remap(members_data, key='public_id').get(public_id)
@@ -140,7 +144,7 @@ class Checker(BaseChecker):
         title = self.f.sentence(nb_words=1)
         desc = self.f.sentence(nb_words=3)
         meeting_data = self.create_meeting_with_image(desc, sess, title, capacity=3)
-        client_sess = self.get_initialized_session()
+        cu, cp, client_sess = self.mch.register_user()
         meeting_id = meeting_data.get('id')
         member_data = self.mch.add_member(client_sess, meeting_id, flag)
         public_id = member_data.get('public_id')
@@ -149,7 +153,9 @@ class Checker(BaseChecker):
             'u': u,
             'p': p,
             'public_id': public_id,
-            'm_id': meeting_id
+            'm_id': meeting_id,
+            'cu': cu,
+            'cp': cp,
         }
         self.cquit(Status.OK, f'sync_{meeting_id}', json.dumps(full_data))
 
@@ -163,12 +169,18 @@ class Checker(BaseChecker):
         self.assert_neq(member, None, 'Failed to get sync members', status=Status.CORRUPT)
         self.assert_eq(member.get('nickname'), flag, 'Failed to get sync members', status=Status.CORRUPT)
 
-        client_sess = self.get_initialized_session()
-        ticket_data = self.mch.get_ticket_data(client_sess, data['public_id'])
-        self.assert_eq(ticket_data.get('nickname'), flag, 'Failed to get ticket data', status=Status.CORRUPT)
-        ticket_url = ticket_data.get('ticket_url')
-        ticket_data_resp = self.mch.get_ticket(client_sess, ticket_url)
-        self.check_ticket_content(flag, ticket_data_resp)
+        client_sess = self.mch.login_user(data['cu'], data['cp'])
+
+        for _ in range(20):
+            sleep(0.5)
+            ticket_data = self.mch.get_ticket_data(client_sess, data['public_id'])
+            self.assert_eq(ticket_data.get('nickname'), flag, 'Failed to get ticket data', status=Status.CORRUPT)
+            if ticket_data.get('ticket_url'):
+                ticket_data_resp = self.mch.get_ticket(client_sess, ticket_data.get('ticket_url'))
+                self.check_ticket_content(flag, ticket_data_resp)
+                break
+        else:
+            self.cquit(Status.CORRUPT, 'Failed to read ticket content')
         self.cquit(Status.OK)
 
 
