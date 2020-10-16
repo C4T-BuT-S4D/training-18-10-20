@@ -1,4 +1,6 @@
 import base64
+import json
+import os
 
 from checklib import *
 import requests
@@ -18,6 +20,11 @@ class CheckMachine:
     def __init__(self, c: BaseChecker):
         self.c = c
         self.port = PORT
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'answers.json'), 'r') as f:
+            self.answers = json.loads(f.read())
+
+    def get_challenge_answer(self, challenge):
+        return str(self.answers.get(str(challenge), ''))
 
     def register_user(self, email=None, password=None):
         email = email or rnd_username() + '@cbsctf.live'
@@ -67,11 +74,22 @@ class CheckMachine:
         self.c.check_response(r, 'Could not get user syncs')
         return self.c.get_json(r, 'Could not get user syncs. Invalid response type')
 
+    def get_challenge(self, sess: requests.Session, m_id):
+        r = sess.get(f'{self.api_url}/sync/{m_id}/challenge')
+        self.c.check_response(r, 'Could not get challenge')
+        return self.c.get_json(r, 'Could not get challenge. Invalid response type')
+
+    def check_challenge(self, sess: requests.Session, m_id):
+        challenge = self.get_challenge(sess, m_id).get('challenge', '')
+        self.c.assert_neq(challenge, '', 'Failed to get challenge', status=Status.MUMBLE)
+        return self.get_challenge_answer(challenge)
+
     def add_member(self, sess: requests.Session, m_id, nickname):
         if not sess:
             sess = self.c.get_initialized_session()
 
-        r = sess.post(f'{self.api_url}/sync/{m_id}/join', json={'nickname': nickname})
+        answer = self.check_challenge(sess, m_id)
+        r = sess.post(f'{self.api_url}/sync/{m_id}/join', json={'nickname': nickname, 'challenge_answer': answer})
         self.c.check_response(r, 'Could not add member to sync')
         return self.c.get_json(r, 'Could not add member to sync. Invalid response type')
 
