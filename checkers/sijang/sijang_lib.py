@@ -3,7 +3,7 @@ from checklib import *
 
 import random
 import string
-from time import sleep
+from gevent import sleep
 
 context.log_level = 'CRITICAL'
 
