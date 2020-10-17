@@ -1,0 +1,12 @@
+version: '2.4'
+services:
+  sumgyeojin:
+    build: .
+    restart: on-failure
+    pids_limit: 256
+    mem_limit: 200M
+    cpus: 0.25
+    ports:
+      - 9090:8080
+    volumes:
+      - ./storage:/storage

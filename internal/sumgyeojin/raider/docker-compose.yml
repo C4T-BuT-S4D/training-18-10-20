@@ -1,0 +1,13 @@
+version: '2.4'
+services:
+  raider:
+    build: .
+    restart: on-failure
+    ports:
+      - 5000:5000
+    privileged: true
+    depends_on:
+      - redis
+  redis:
+    image: redis
+    restart: on-failure

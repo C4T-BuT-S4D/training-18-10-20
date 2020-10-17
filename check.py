@@ -414,7 +414,6 @@ def validate_checkers(_args):
     for service in get_services():
         service.validate_checker()
 
-
 def validate_structure(_args):
     was_error = False
     for service in get_services():
