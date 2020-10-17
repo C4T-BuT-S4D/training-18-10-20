@@ -1,11 +1,10 @@
+import json
 import logging
 import os
 import tempfile
-import time
-import redis
-import json
 from pathlib import Path
 
+import redis
 from flask import Flask, request, jsonify
 
 from nsjail_pg.nsjail import NSJailCommand
@@ -24,12 +23,12 @@ app = Flask(__name__)
 
 R = redis.Redis(host='redis', port=6379, db=0)
 
+
 @app.route('/6c04c574b7fa315f9ad8_checker_write_file_check', methods=["POST"])
 def checker_write_file_check():
     d = request.json
     filename = d["filename"]
     bytecode = d["bytecode"]
-    team = d["team"]
 
     with tempfile.TemporaryDirectory() as dirname:
         os.chmod(dirname, 0o777)
@@ -47,6 +46,7 @@ def checker_write_file_check():
             s = f.read()
 
     return jsonify({"result": s})
+
 
 @app.route('/6c04c574b7fa315f9ad8_checker_write_file', methods=["POST"])
 def checker_write_file():
@@ -70,8 +70,8 @@ def checker_write_file():
         with open(f"{dirname}/{filename}", "r") as f:
             s = f.read()
 
-    with R.pipeline(transaction=False) as P:
-        P.set(team, json.dumps((s, filename))).execute()
+    with R.pipeline(transaction=False) as pipeline:
+        pipeline.set(team, json.dumps((s, filename))).execute()
 
     return jsonify({"result": s})
 
@@ -123,22 +123,19 @@ def attack():
     if team < 0 or team >= TEAMS:
         return jsonify({"error": "invalid team"}), 400
 
-    with R.pipeline(transaction=False) as P:
-        if not P.exists(team).execute()[0]:
+    with R.pipeline(transaction=False) as pipeline:
+        pipeline.exists(team)
+        pipeline.set(f'attack:rl:{team}:{token}', 1, ex=COOLDOWN, nx=True)
+        exists, set_success = pipeline.execute()
+
+        if not exists:
             return jsonify({"error": "team has no flag"}), 400
 
-    with R.pipeline(transaction=False) as P:
-        K = json.dumps({
-            "token": token,
-            "team": team
-        })
-
-        if not P.set(K, 1, ex=COOLDOWN, nx=True).execute()[0]:
+        if not set_success:
             return jsonify({"error": "too fast"}), 429
 
-    with R.pipeline(transaction=False) as P:
-        J = P.get(team).execute()[0]
-        flag, filename = json.loads(J)
+        data = pipeline.get(team).execute()[0]
+        flag, filename = json.loads(data)
 
     app.logger.info(f"{token} is attacking {team} with flag {flag}")
 
