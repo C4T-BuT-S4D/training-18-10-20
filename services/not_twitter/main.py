@@ -37,8 +37,12 @@ def upload_file():
         return redirect(url_for('login'))
     if request.method == 'POST':
         link = request.form['link']
-        file_resp = urllib.request.urlopen(link)
-        file_bytes = file_resp.read(MAX_FILESIZE)
+        try:
+            file_resp = urllib.request.urlopen(link)
+            file_bytes = file_resp.read(MAX_FILESIZE)
+        except Exception:
+            message = f"Error during downloading the page"
+            return render_template('message.html', message=message)
         if file_bytes:
             cookie = session["user"]
             user_model.check_auth(cookie)
