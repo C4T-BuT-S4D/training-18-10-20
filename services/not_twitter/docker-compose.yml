@@ -40,6 +40,16 @@ services:
       - internal
     restart: "always"
 
+  cleaner:
+    image: c4tbuts4d/dedcleaner:latest
+    restart: on-failure
+    volumes:
+      - ./uploads/:/uploads
+    environment:
+      - DELETE_AFTER=30m
+      - SLEEP=30m
+      - DIRS=/uploads
+
 networks:
   default:
   internal:
