@@ -213,7 +213,7 @@ class Service(BaseValidator):
 
     def up(self):
         self._log('starting')
-        self._run_dc('up', '--build', '-_dir')
+        self._run_dc('up', '--build', '-d')
 
     def logs(self):
         self._log('printing logs')
