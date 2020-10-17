@@ -18,7 +18,7 @@ from typing import List, Tuple
 BASE_DIR = Path(__file__).resolve().absolute().parent
 SERVICES_PATH = BASE_DIR / 'services'
 CHECKERS_PATH = BASE_DIR / 'checkers'
-MAX_THREADS = int(os.getenv('MAX_THREADS', default=os.cpu_count()))
+MAX_THREADS = int(os.getenv('MAX_THREADS', default=2 * os.cpu_count()))
 RUNS = int(os.getenv('RUNS', default=10))
 HOST = os.getenv('HOST', default='127.0.0.1')
 OUT_LOCK = Lock()
