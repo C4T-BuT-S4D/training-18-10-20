@@ -137,9 +137,8 @@ class CheckMachine:
 		else:
 			self.sock.send( b"n\n" )
 
-		self.sock.recvuntil( b"> " )
-		data = self.sock.recvline().strip()
-		#print( "data = ", data )
+		data = self.sock.recvuntil( b"Item is " )
+		data += self.sock.recv()
 
 		if b"[+] Item is added" not in data:
 			self.c.cquit( Status.MUMBLE, 
@@ -147,10 +146,18 @@ class CheckMachine:
 				"Checker.sell_flag_weapon(): out_data = {}".format( data )
 			)
 
-		data = self.sock.recvline()
+		while b"token" not in data:
+			try:
+				data += self.sock.recv()
+			except:
+				self.c.cquit( Status.MUMBLE, 
+				"Can't get item token",
+				"Checker.sell_flag_weapon(): out_data = {}".format( data )
+			)
 
 		try:
-			token = data.split( b'\n' )[ 1 ].split( b": " )[-1]
+			token = data.split( b'\n' )[-2]
+			token = token.split( b": " )[1]
 		except:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't get item token",
@@ -186,17 +193,27 @@ class CheckMachine:
 		self.sock.recvuntil( b"weapon?[y\\n]: " )
 		self.sock.send( b"y\n" )
 
-		self.sock.recvuntil( b"> " )
-		data = self.sock.recv()
+		data = self.sock.recvuntil( b"Item is " )
+		data += self.sock.recv()
 
-		if b"[+] Item is added to market!" not in data:
+		if b"[+] Item is added" not in data:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't add item to market",
 				"Checker.sell_flag_weapon(): out_data = {}".format( data )
 			)
 
+		while b"token" not in data:
+			try:
+				data += self.sock.recv()
+			except:
+				self.c.cquit( Status.MUMBLE, 
+				"Can't get item token",
+				"Checker.sell_flag_weapon(): out_data = {}".format( data )
+			)
+				
 		try:
-			token = data.split( b'\n' )[ 1 ].split( b": " )[-1]
+			token = data.split( b'\n' )[-2]
+			token = token.split( b": " )[1]
 		except:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't get item token",

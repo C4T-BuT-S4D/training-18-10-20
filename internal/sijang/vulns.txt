@@ -1,0 +1,11 @@
+attack plan
+
+1. add weapon to sell queue
+2. make race condintion to lock market file and get a little piece of time to set weapon as main
+3. now we sell our weapon, but g_user->current_weapon is our sold weapon
+4. When we sell weapon, we free( wp ) and get a new struct for weapon entry in market
+5. New struct has same size as struct weapon
+6. So we have a g_user->current_weapon wich points to market_entry
+7. In struct market_entry first field is pointer to owner name
+8. When we unset weapon, item is added to weapon list, and his qualitit is now equal a DWORD of pointer to owner name
+9. now we can sell this weapon again and get a lot of coins

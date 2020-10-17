@@ -1,7 +1,8 @@
 FROM ubuntu:20.04
 
 RUN apt-get update && apt-get upgrade -yyq
-RUN apt-get install socat build-essential -yyq
+RUN apt-get install socat -yyq
+RUN apt-get install libasan5 -yyq
 
 ADD --chown=root ./sijang /sijang
 
