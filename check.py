@@ -10,6 +10,7 @@ import subprocess
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from enum import Enum
 from pathlib import Path
 from threading import Lock, current_thread
 from typing import List, Tuple
@@ -21,6 +22,19 @@ MAX_THREADS = int(os.getenv('MAX_THREADS', default=os.cpu_count()))
 RUNS = int(os.getenv('RUNS', default=10))
 HOST = os.getenv('HOST', default='127.0.0.1')
 OUT_LOCK = Lock()
+DISABLE_LOG = False
+
+
+class ColorType(Enum):
+    HEADER = '\033[95m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    BOLD = '\033[1m'
+    ENDC = '\033[0m'
+
+    def __str__(self):
+        return self.value
 
 
 def generate_flag(name):
@@ -28,15 +42,25 @@ def generate_flag(name):
     return name[0].upper() + ''.join(random.choices(alph, k=30)) + '='
 
 
+def colored_log(message: str, color: ColorType = ColorType.OKGREEN):
+    print(f'{color}[{current_thread().name}]{ColorType.ENDC} {message}')
+
+
 class BaseValidator:
-    def _log(self, message: str):
+    def _log(self, message: str, *, disable_log=False):
         with OUT_LOCK:
-            print(f'[{current_thread().name}] {str(self)}: {message}')
+            if not DISABLE_LOG:
+                colored_log(f'{self}: {message}')
 
     def _assert(self, cond, message):
-        if not cond:
-            self._log(message)
-            raise AssertionError
+        global DISABLE_LOG
+
+        with OUT_LOCK:
+            if not cond:
+                if not DISABLE_LOG:
+                    colored_log(f'{self}: {message}', color=ColorType.FAIL)
+                DISABLE_LOG = True
+                raise AssertionError
 
 
 class Checker(BaseValidator):
@@ -129,10 +153,6 @@ class Service(BaseValidator):
         self._assert(self._dc_path.exists(), f'{self._dc_path.relative_to(BASE_DIR)} missing')
 
         self._checker = Checker(self._name)
-
-    def _log(self, message: str):
-        with OUT_LOCK:
-            print(f'[{current_thread().name}] service {self._name}: {message}')
 
     def _run_dc(self, *args):
         cmd = ['docker-compose', '-f', str(self._dc_path)] + list(args)
