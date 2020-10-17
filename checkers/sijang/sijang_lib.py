@@ -3,14 +3,15 @@ from checklib import *
 
 import random
 import string
+from gevent import sleep
 
 context.log_level = 'CRITICAL'
 
 PORT = 9999
 
 # global const
-TCP_CONNECTION_TIMEOUT = 5
-TCP_OPERATIONS_TIMEOUT = 7
+TCP_CONNECTION_TIMEOUT = 10
+TCP_OPERATIONS_TIMEOUT = 10
 alph = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789'
 
 class CheckMachine:
@@ -27,6 +28,7 @@ class CheckMachine:
 				self.port, 
 				timeout = TCP_CONNECTION_TIMEOUT 
 			)
+			self.sock.settimeout( TCP_CONNECTION_TIMEOUT )
 		except:
 			self.sock = None
 			self.c.cquit( Status.DOWN, 
@@ -98,8 +100,13 @@ class CheckMachine:
 
 	def get_market_page( self ):
 		self.sock.send( b"2\n" )
+		self.sock.settimeout( 3 )
 
-		data = self.sock.recvuntil( b"\n -- Buy Menu --" )
+		try:
+			data = self.sock.recvuntil( b"\n -- Buy Menu --" )
+		except:
+			return "again"
+
 		self.sock.recvuntil( b"> " )
 		self.sock.send( "4\n" )
 		self.sock.recvuntil( b"> " )
@@ -137,21 +144,34 @@ class CheckMachine:
 		else:
 			self.sock.send( b"n\n" )
 
-		self.sock.recvuntil( b"> " )
 		data = self.sock.recv()
 
-		if b"[+] Item is added to market!" not in data:
+		while b"Item is " not in data:
+		#data = self.sock.recvuntil( b"Item is " )
+			data += self.sock.recv()
+
+		if b"[+] Item is added" not in data:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't add item to market",
-				"Checker.sell_flag_weapon(): out_data = {}".format( data )
+				"Checker.sell_weapon(): out_data = {}".format( data )
+			)
+
+		while b"token" not in data:
+			try:
+				data += self.sock.recv()
+			except:
+				self.c.cquit( Status.MUMBLE, 
+				"Can't get item token",
+				"Checker.sell_weapon(): out_data = {}".format( data )
 			)
 
 		try:
-			token = data.split( b'\n' )[ 1 ].split( b": " )[-1]
+			token = data.split( b'\n' )[-2]
+			token = token.split( b": " )[1]
 		except:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't get item token",
-				"Checker.sell_flag_weapon(): out_data = {}".format( data )
+				"Checker.sell_weapon(): out_data = {}".format( data )
 			)
 
 		self.sock.send( b"\n" )
@@ -183,17 +203,29 @@ class CheckMachine:
 		self.sock.recvuntil( b"weapon?[y\\n]: " )
 		self.sock.send( b"y\n" )
 
-		self.sock.recvuntil( b"> " )
 		data = self.sock.recv()
 
-		if b"[+] Item is added to market!" not in data:
+		while b"Item is " not in data:
+			data += self.sock.recv()
+
+		if b"[+] Item is added" not in data:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't add item to market",
 				"Checker.sell_flag_weapon(): out_data = {}".format( data )
 			)
 
+		while b"token" not in data:
+			try:
+				data += self.sock.recv()
+			except:
+				self.c.cquit( Status.MUMBLE, 
+				"Can't get item token",
+				"Checker.sell_flag_weapon(): out_data = {}".format( data )
+			)
+				
 		try:
-			token = data.split( b'\n' )[ 1 ].split( b": " )[-1]
+			token = data.split( b'\n' )[-2]
+			token = token.split( b": " )[1]
 		except:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't get item token",
@@ -205,7 +237,36 @@ class CheckMachine:
 
 		return token
 
+	def get_item_by_token( self, token ):
+		sleep( 0.1 )
+		self.sock.send( b"4\n" )
+		self.sock.recvuntil( b"token: " )
+
+		self.sock.send( token.encode() + b'\n' )
+		data = self.sock.recvline()
+
+		if b"not found!" in data:
+			self.sock.close()
+			self.c.cquit( Status.CORRUPT, 
+				"Can't find item by token!", 
+				"Token of flag item is not founded, data ={}".format( data.decode() ) 
+			)
+
+		try:
+			data = self.sock.recvuntil( b"status? [y\\n]: " )
+			self.sock.send( b"n\n" ) 
+			self.sock.recvuntil( b"> ")
+		except:
+			self.sock.close()
+			self.c.cquit( Status.CORRUPT, 
+				"Can't get item token!", 
+				"Token parse error, data ={}".format( data.decode() ) 
+			)
+
+		return data
+
 	def get_archive_item( self, token ):
+		sleep( 0.1 )
 		self.sock.send( b"4\n" )
 		self.sock.recvuntil( b"token: " )
 

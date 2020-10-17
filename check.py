@@ -131,25 +131,25 @@ class Checker(BaseValidator):
             f'invalid timeout: {self._timeout}',
         )
 
-    def _run_command(self, command: List[str]) -> Tuple[str, str]:
-        try:
-            start = time.monotonic()
-            p = subprocess.run(command, capture_output=True,
-                               check=False, timeout=self._timeout)
-            end = time.monotonic()
-        except subprocess.TimeoutExpired:
-            self._fatal(False, 'command timeout expired')
-            raise
+    def _run_command(self, command: List[str], env=None) -> Tuple[str, str]:
+        cmd = ['timeout', str(self._timeout)] + command
 
-        elapsed = end - start
+        start = time.monotonic()
+        p = subprocess.run(cmd, capture_output=True, check=False, env=env)
+        elapsed = time.monotonic() - start
+
         out = p.stdout.decode()
         err = p.stderr.decode()
 
         out_s = out.rstrip('\n')
         err_s = err.rstrip('\n')
-        self._log(f'time: {elapsed:.2f}s\nstdout:\n{out_s}\nstderr:\n{err_s}')
-        self._fatal(p.returncode == 101, f'bad return code: {p.returncode}')
 
+        self._log(f'time: {elapsed:.2f}s\nstdout:\n{out_s}\nstderr:\n{err_s}')
+        self._fatal(
+            p.returncode != 124, 
+            f'return code is 124, {ColorType.BOLD}timeout{ColorType.ENDC} probably',
+        )
+        self._fatal(p.returncode == 101, f'bad return code: {p.returncode}')
         return out, err
 
     def check(self):

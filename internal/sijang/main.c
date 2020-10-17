@@ -286,6 +286,8 @@ void reg_user( char* username, char* password )
 	fprintf( fp, "%s\n", weapon_string );
 	fclose( fp );
 	free_mem( filename );
+	free_mem( weapon_string );
+	free_mem( start_weapon );
 };
 
 int init_user( char* username )
@@ -322,7 +324,7 @@ int init_user( char* username )
 
 	for ( int i = 3; file_data[ i ] != NULL; i++ )
 	{
-		weapon* wp = (weapon*) alloc_mem( sizeof( weapon ) );
+		weapon* wp = (weapon*) calloc( sizeof( weapon ), 1 );
 		wp->is_seted = FALSE;
 
 		parse_weapon_line( wp, file_data[ i ] );
@@ -342,11 +344,18 @@ int init_user( char* username )
 		file_data[ i ] = NULL;
 	}
 
+	free_mem( file_data );
+
 	return TRUE;
 };
 
 int save_current_user( void )
 {
+	if ( g_user == NULL )
+	{
+		return 0;
+	}
+
 	char* filename = get_user_filename( g_user->name );
 	FILE* fp = fopen( filename, "w" );
 
@@ -415,12 +424,26 @@ int buy_weapon( void )
 {
 	// try to get items from server
 	int current_page = 0;
-	page_item** page = (page_item**) alloc_mem( sizeof( page_item* ) * 10 );
+	page_item** page = (page_item**) calloc( sizeof( page_item* ) * 10, 1 );
 
 	enum MARKET_CODES ret_code = get_items_from_server( current_page, page );
 
 	if ( ret_code == MARKET_IS_EMPTY )
+	{
+		for ( int i = 0; i < 10; i++ )
+		{	
+			if ( page[ i ] == NULL )
+				continue;
+
+			free_mem( page[ i ]->name );
+			free_mem( page[ i ] );
+			page[ i ] = NULL;
+		}
+
+		free_mem( page );
+
 		return 1;
+	}
 
 	// print header if not empty
 	printf( table_header );
@@ -462,10 +485,20 @@ int buy_weapon( void )
 				get_another_page( page );
 				break;
 			case 4:
+			{
+				for ( int i = 0; i < 10; i++ )
+				{	
+					if ( page[ i ] == NULL )
+						continue;
+
+					free_mem( page[ i ]->name );
+					free_mem( page[ i ] );
+					page[ i ] = NULL;
+				}
 				return 0;
-				break;
+			}
 			default:
-				break;
+				return 0;
 		}
 
 		max_menu_inputs -= 1;
@@ -481,6 +514,7 @@ int buy_weapon( void )
 		page[ i ] = NULL;
 	}
 
+	free_mem( page );
 	return 0;
 };
 
@@ -490,8 +524,8 @@ enum MARKET_CODES get_items_from_server( int page_id, page_item** page )
 
 	if ( market_fd == -1 )
 	{
-		puts( "[-] Item is not added to market!" );
-		pthread_exit( 0 );
+		puts( "[-] Can't connect to market!" );
+		return UNDEFINED_RET_CODE;
 	}
 
 	// try to get access to market
@@ -504,6 +538,7 @@ enum MARKET_CODES get_items_from_server( int page_id, page_item** page )
 
 	while ( ret_code == MARKET_BUSY )
 	{
+		printf( "ret_code = busy, packet = %s\n", packet );
 		ret_code = request_to_access( packet, size, market_fd );
 		usleep( SLEEP_TIME );
 
@@ -522,13 +557,13 @@ enum MARKET_CODES get_items_from_server( int page_id, page_item** page )
 		return ret_code;
 	}
 
-	// get pages 
+	// get pages
 	free_mem( packet );
 	packet = (char*) alloc_mem( MARKET_ITEM_SIZE );
 
 	sprintf( packet, "get_page|%d|%d|", page_id, PAGE_SIZE );
-
 	ret_code = send_req( market_fd, packet );
+	free_mem( packet );
 
 	if ( ret_code == MARKET_IS_EMPTY )
 	{
@@ -558,17 +593,17 @@ enum MARKET_CODES get_items_from_server( int page_id, page_item** page )
 
 		for ( int i = 0; ptr; i++ )
 		{
-			lines[ i ] = (char*) alloc_mem( strlen( ptr ) );
+			lines[ i ] = (char*) alloc_mem( strlen( ptr ) + 64 );
 			strcpy( lines[ i ], ptr + 5 );
 			ptr = strtok( NULL, "\n" );
 		}
 
 		for ( int i = 0; lines[ i ]; i++ )
 		{
-			page[ i ] = (page_item*) alloc_mem( sizeof( page_item ) );
+			page[ i ] = (page_item*) calloc( sizeof( page_item ), 1 );
 
 			char* ptr = strtok( lines[ i ], "|" );
-			page[ i ]->name = (char*) alloc_mem( strlen( ptr ) );
+			page[ i ]->name = (char*) alloc_mem( strlen( ptr ) + 64 );
 			strcpy( page[ i ]->name, ptr );
 
 			ptr = strtok( NULL, "|" );
@@ -576,7 +611,6 @@ enum MARKET_CODES get_items_from_server( int page_id, page_item** page )
 
 			ptr = strtok( NULL, "|" );
 			page[ i ]->token = atoi( ptr );
-
 			page[ i ]->id = i;
 		}
 
@@ -611,8 +645,6 @@ int buy_by_token( page_item** page )
 
 	while ( item == NULL && status == MARKET_BUSY )
 	{
-		printf( "." );
-
 		status = request_item_info( token, item );
 		
 		if ( status != MARKET_BUSY )
@@ -765,8 +797,8 @@ enum MARKET_CODES buy_item( DWORD token, market_item* itm )
 
 	if ( market_fd == -1 )
 	{
-		puts( "[-] Item is not added to market!" );
-		pthread_exit( 0 );
+		puts( "[-] Can't connect to market!" );
+		return MARKET_BUSY;
 	}
 
 	// try to get access to market
@@ -1063,22 +1095,38 @@ int change_weapon_status( void )
 		{
 			puts( "[-] Market is busy now. Cant update item info!" );
 			puts( "[-] Try to update after some time!" );
+			free_mem( weapon->name );
+			free_mem( weapon->desc );
+			free_mem( weapon->owner );
+			free_mem( weapon );
 			return MARKET_BUSY;
 		}
 
 		if ( status == MARKET_ITEM_NOT_FOUND )
 		{
 			puts( "[-] Item for update not found!" );
+			free_mem( weapon->name );
+			free_mem( weapon->desc );
+			free_mem( weapon->owner );
+			free_mem( weapon );
 			return status;
 		}
 
 		if ( status == MARKET_ITEM_UPDATED )
 		{
 			puts( "[+] Item updated!" );
+			free_mem( weapon->name );
+			free_mem( weapon->desc );
+			free_mem( weapon->owner );
+			free_mem( weapon );
 			return status;
 		}
 	} 
 
+	free_mem( weapon->name );
+	free_mem( weapon->desc );
+	free_mem( weapon->owner );
+	free_mem( weapon );
 	return status;
 };
 
@@ -1088,8 +1136,8 @@ enum MARKET_CODES update_item_request( market_item* itm )
 
 	if ( market_fd == -1 )
 	{
-		puts( "[-] Item is not added to market!" );
-		pthread_exit( 0 );
+		puts( "[-] Can't connect to market!" );
+		return MARKET_BUSY;
 	}
 
 	// try to get access to market
@@ -1127,8 +1175,8 @@ enum MARKET_CODES request_item_info( DWORD token, market_item* wp )
 
 	if ( market_fd == -1 )
 	{
-		puts( "[-] Item is not added to market!" );
-		pthread_exit( 0 );
+		puts( "[-] Can't connect to market!" );
+		return MARKET_BUSY;
 	}
 
 	// try to get access to market
@@ -1198,8 +1246,8 @@ enum MARKET_CODES request_full_item_info( DWORD token, market_item* wp )
 
 	if ( market_fd == -1 )
 	{
-		puts( "[-] Item is not added to market!" );
-		pthread_exit( 0 );
+		puts( "[-] Can't connect to market!" );
+		return MARKET_BUSY;
 	}
 
 	// try to get access to market
@@ -1353,7 +1401,21 @@ void* add_to_market_hndl( void* args )
 
 	if ( market_fd == -1 )
 	{
+		if ( l_args->wp->description != NULL )
+		{
+			free_mem( l_args->wp->description );	
+		}
+
+		if ( l_args->wp->name != NULL )
+		{
+			free_mem( l_args->wp->name );
+		}
+
+		free_mem( l_args->wp );
+
 		puts( "[-] Item is not added to market!" );
+		free_mem( args );
+
 		pthread_exit( 0 );
 	}
 
@@ -1363,8 +1425,7 @@ void* add_to_market_hndl( void* args )
 
 	// wait if market is busy
 	if ( status == MARKET_BUSY )
-	{	// wait 2.5 sec
-		while ( TRUE && tries != SLEEP_TRIES )
+	{	while ( TRUE && tries != SLEEP_TRIES )
 		{
 			usleep( SLEEP_TIME ); // 1000000 microsec == 1 sec 
 			status = request_to_add_item( market_fd );
@@ -1406,6 +1467,7 @@ void* add_to_market_hndl( void* args )
 
 	// convert market_item to request string
 	char* req_packet = market_item2request( new_item );
+	free_mem( new_item );
 
 	if ( req_packet == NULL )
 	{
@@ -1415,6 +1477,7 @@ void* add_to_market_hndl( void* args )
 
 	// send add request
 	status = send_req( market_fd, req_packet ); // custom send function
+	free_mem( req_packet );
 
 	// check request status
 	if ( status == MARKET_ITEM_ADDED )
@@ -1426,24 +1489,36 @@ void* add_to_market_hndl( void* args )
 		puts( "[+] Item is added to market!" );
 		printf( "[+] You can view your item by token: %u\n", item_token );
 
-		free_mem( l_args->wp );
+		if ( l_args->wp->description != NULL )
+		{
+			free_mem( l_args->wp->description );	
+		}
 
+		if ( l_args->wp->name != NULL )
+		{
+			free_mem( l_args->wp->name );
+		}
+
+		free_mem( l_args->wp );
 		save_current_user();
 	}
 	else if ( status == MARKET_ITEM_NOT_ADDED )
 	{
 		puts( "[-] Item not added to market!" );
 		close_connection( market_fd );
+		free_mem( l_args );
 		pthread_exit( 0 );
 	}
 	else
 	{
 		printf( "[-] Error in market add item request, errno = %d\n", status );
 		close_connection( market_fd );
+		free_mem( l_args );
 		pthread_exit( 0 );
 	}
 
 	close_connection( market_fd );
+	free_mem( l_args );
 	pthread_exit( 0 );
 };
 
@@ -1454,11 +1529,13 @@ int request_to_add_item( int fd )
 	int packet_size = (int) strlen( req_packet );
 
 	enum MARKET_CODES ret_code = request_to_access( req_packet, packet_size, fd );
+	
+	free_mem( req_packet );
 
 	if ( ret_code == -1 )
 	{
 		perror( "[-] Intrenal error!" );
-		exit( INTERNAL_ERROR );
+		return UNDEFINED_RET_CODE;
 	}
 
 	return ret_code;
@@ -1477,38 +1554,40 @@ enum MARKET_CODES request_to_access( char* req_packet, int packet_size, int fd )
 		if ( ( pad + nbytes ) != packet_size )
 		{
 			perror( "[-] Some error in market server communication!" );
-			exit( MARKET_SEND_REQ_ERROR );		
+			return UNDEFINED_RET_CODE;
 		}
 	}
 
-	free_mem( req_packet );
-	req_packet = (char*) alloc_mem( REQ_TO_ADD_PACKET_SIZE );
+	char* recv_packet = (char*) alloc_mem( REQ_TO_ADD_PACKET_SIZE );
 
 	struct timeval tv;
 	tv.tv_sec = RECV_TIMEOUT;
 	tv.tv_usec = 0;
 	setsockopt( fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof( tv ) );
 
-	nbytes = recv( fd, req_packet, REQ_TO_ADD_PACKET_SIZE, 0 );
+	nbytes = recv( fd, recv_packet, REQ_TO_ADD_PACKET_SIZE, 0 );
 
 	if ( nbytes < 0 )
 	{
 		perror( "[-] Some error in receive market data!" );
-		exit( MARKET_GET_RECV_ERROR );
+		return UNDEFINED_RET_CODE;
 	}
 
-	if ( !strncmp( req_packet, "access", 6 ) )
+	if ( !strncmp( recv_packet, "access", 6 ) )
 	{
+		free_mem( recv_packet );
 		return MARKET_ACCESS;
 	}
-	else if ( !strncmp( req_packet, "busy", 4 ) )
+	else if ( !strncmp( recv_packet, "busy", 4 ) )
 	{
+		free_mem( recv_packet );
 		return MARKET_BUSY;
 	}
 	else
 	{
+		free_mem( recv_packet );
 		perror( "[-] Some internal market error!" );
-		exit( MARKET_INTERNRAL_ERROR );
+		return MARKET_BUSY;
 	}
 
 	return -1;
@@ -1579,33 +1658,40 @@ int send_req( int fd, char* packet )
 	else if ( !strncmp( recv_packet, "full_item_info|\0", 15 ) )
 	{
 		memcpy( packet, recv_packet, MARKET_ITEM_SIZE );
+		free_mem( recv_packet );
 		return MARKET_ITEM_FULLINFO;
 	}
 	else if ( !strncmp( recv_packet, "item_updated|\0", 12 ) )
 	{
 		memcpy( packet, recv_packet, MARKET_ITEM_SIZE );
+		free_mem( recv_packet );
 		return MARKET_ITEM_UPDATED;
 	}
 	else if ( !strncmp( recv_packet, "page_items\0", 10 ) )
 	{
+		free_mem( recv_packet );
 		return MARKET_PAGE_ITEMS_GETED;
 	}
 	else if ( !strncmp( recv_packet, "market_is_empty\0", 15 ) )
 	{
+		free_mem( recv_packet );
 		return MARKET_IS_EMPTY;
 	}
 	else if( !strncmp( recv_packet, "item_info\0", 9 ) )
 	{
 		memcpy( packet, recv_packet, MARKET_ITEM_SIZE );
+		free_mem( recv_packet );
 		return MARKET_ITEM_INFO;
 	}
 	else if ( !strncmp( recv_packet, "page_not_found\0", 14 ) )
 	{
+		free_mem( recv_packet );
 		return MARKET_PAGE_NOT_FOUND;
 	}
 	else if ( !strncmp( recv_packet, "del_item\0", 8 ) ) 
 	{
 		memcpy( packet, recv_packet, MARKET_ITEM_SIZE );
+		free_mem( recv_packet );
 		return MARKET_ITEM_DELETED;
 	}
 
@@ -1629,7 +1715,7 @@ int connect_to_market( void )
 	struct hostent* market_host; 
 	market_host = gethostbyname( MARKET_HOST_NAME );
 
-	if ( market_host == NULL )
+	if ( market_host == NULL ) 
 	{
 		puts( "Invalid market hostname!" );
 		close( fd );
@@ -1652,6 +1738,13 @@ int connect_to_market( void )
 		close( fd );
 		return -1;
 	}
+
+	struct timeval tv;
+	tv.tv_sec = 2;
+	tv.tv_usec = 0;
+
+	setsockopt( fd, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof( tv ) );
+	setsockopt( fd, SOL_SOCKET, SO_SNDTIMEO, (const char*) &tv, sizeof( tv ) );
 
 	return fd;
 };
@@ -1950,6 +2043,7 @@ int read_buf( char* buf, int max_size )
 
 void* alloc_mem( size_t size )
 {
+	size += 16;
 	void* ptr = calloc( size, 1 );
 
 	if ( ptr == NULL )
