@@ -99,8 +99,13 @@ class CheckMachine:
 
 	def get_market_page( self ):
 		self.sock.send( b"2\n" )
+		self.sock.settimeout( 3 )
 
-		data = self.sock.recvuntil( b"\n -- Buy Menu --" )
+		try:
+			data = self.sock.recvuntil( b"\n -- Buy Menu --" )
+		except:
+			return "again"
+
 		self.sock.recvuntil( b"> " )
 		self.sock.send( "4\n" )
 		self.sock.recvuntil( b"> " )
@@ -197,8 +202,10 @@ class CheckMachine:
 		self.sock.recvuntil( b"weapon?[y\\n]: " )
 		self.sock.send( b"y\n" )
 
-		data = self.sock.recvuntil( b"Item is " )
-		data += self.sock.recv()
+		data = self.sock.recv()
+
+		while b"Item is " not in data:
+			data += self.sock.recv()
 
 		if b"[+] Item is added" not in data:
 			self.c.cquit( Status.MUMBLE, 
@@ -228,6 +235,33 @@ class CheckMachine:
 		self.sock.recvuntil( b"> " )
 
 		return token
+
+	def get_item_by_token( self, token ):
+		self.sock.send( b"4\n" )
+		self.sock.recvuntil( b"token: " )
+
+		self.sock.send( token.encode() + b'\n' )
+		data = self.sock.recvline()
+
+		if b"not found!" in data:
+			self.sock.close()
+			self.c.cquit( Status.CORRUPT, 
+				"Can't find item by token!", 
+				"Token of flag item is not founded, data ={}".format( data.decode() ) 
+			)
+
+		try:
+			data = self.sock.recvuntil( b"status? [y\\n]: " )
+			self.sock.send( b"n\n" ) 
+			self.sock.recvuntil( b"> ")
+		except:
+			self.sock.close()
+			self.c.cquit( Status.CORRUPT, 
+				"Can't get item token!", 
+				"Token parse error, data ={}".format( data.decode() ) 
+			)
+
+		return data
 
 	def get_archive_item( self, token ):
 		self.sock.send( b"4\n" )

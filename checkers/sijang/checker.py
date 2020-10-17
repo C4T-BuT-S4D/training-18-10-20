@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
-from gevent import monkey
+# from gevent import monkey
 
-monkey.patch_all()
+# monkey.patch_all()
 
 import sys
 import os
 import string
 import random
 import copy
+from time import sleep
 
 from checklib import *
 
@@ -39,15 +40,20 @@ class Checker(BaseChecker):
 	def check( self ):
 		self.mch.connection()
 
-		# check register and login
-		username = idg()
+		username = idg() 
 		password = idg()
 
-		self.mch.reg_user( username, password )
+		#print(username)
+
+		# check register and login
+		# if "EXECUTOR" in os.environ.keys():
+		# 	username += os.environ['EXECUTOR'].replace('_','')
+		# 	password += os.environ['EXECUTOR'].replace('_','')
 		
+		self.mch.reg_user( username, password )
+
 		# set weapon and check
 		profile = self.mch.get_profile()
-		
 		if len( profile[ 'weapons' ] ) < 1:
 			self.cquit( Status.MUMBLE,
 				"User has no weapon!",
@@ -78,9 +84,10 @@ class Checker(BaseChecker):
 		# sell weapon and check
 		description = idg()
 		token = self.mch.sell_weapon( description )
-
+		sleep( 0.1 )
+		
 		# buy weapon, find our weapon
-		data = self.mch.get_market_page()
+		data = self.mch.get_item_by_token( token.decode() )
 
 		if not user_weapon in data:
 			self.cquit( Status.MUMBLE,
@@ -89,7 +96,6 @@ class Checker(BaseChecker):
 			)
 
 		# sell archived weapon, change status
-
 		self.mch.safe_close_connection()
 		self.cquit( Status.OK )
 
@@ -100,6 +106,13 @@ class Checker(BaseChecker):
 		username = idg()
 		password = idg()
 
+		#print(username)
+
+		# check register and login
+		# if "EXECUTOR" in os.environ.keys():
+		# 	username += os.environ['EXECUTOR'].replace('_','')
+		# 	password += os.environ['EXECUTOR'].replace('_','')
+
 		self.mch.reg_user( username, password )
 
 		item_token = self.mch.sell_flag_weapon( flag ).decode()
@@ -109,6 +122,13 @@ class Checker(BaseChecker):
 
 	def get( self, flag_id, flag, vuln ):
 		username, password, token = flag_id.split( ":" )
+
+		# print(username)
+
+		# # check register and login
+		# if "EXECUTOR" in os.environ.keys():
+		# 	username += os.environ['EXECUTOR'].replace('_','')
+		# 	password += os.environ['EXECUTOR'].replace('_','')
 
 		self.mch.connection()
 		logined, err_msg = self.mch.login( username, password )
