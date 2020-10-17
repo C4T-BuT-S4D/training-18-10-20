@@ -9,13 +9,14 @@ import string
 import subprocess
 import time
 import traceback
-import yaml
 from concurrent.futures import ThreadPoolExecutor
-from dockerfile_parse import DockerfileParser
 from enum import Enum
 from pathlib import Path
 from threading import Lock, current_thread
 from typing import List, Tuple
+
+import yaml
+from dockerfile_parse import DockerfileParser
 
 BASE_DIR = Path(__file__).resolve().absolute().parent
 SERVICES_PATH = BASE_DIR / 'services'
@@ -30,13 +31,20 @@ DC_REQUIRED_OPTIONS = ['version', 'services']
 DC_ALLOWED_OPTIONS = DC_REQUIRED_OPTIONS + ['volumes']
 
 CONTAINER_REQUIRED_OPTIONS = ['restart']
-CONTAINER_ALLOWED_OPTIONS = CONTAINER_REQUIRED_OPTIONS + \
-    ['pids_limit', 'mem_limit', 'cpus', 'build', 'image', 'ports', 'environment', 'volumes', 'env_file',
-        'depends_on', 'sysctls', 'privileged', 'security_opt']
+CONTAINER_ALLOWED_OPTIONS = CONTAINER_REQUIRED_OPTIONS + [
+    'pids_limit', 'mem_limit', 'cpus',
+    'build', 'image',
+    'ports', 'volumes',
+    'environment', 'env_file',
+    'depends_on',
+    'sysctls', 'privileged', 'security_opt',
+]
 SERVICE_REQUIRED_OPTIONS = ['pids_limit', 'mem_limit', 'cpus']
 SERVICE_ALLOWED_OPTIONS = CONTAINER_ALLOWED_OPTIONS
-DATABASES = ['redis', 'postgres', 'mysql', 'mariadb',
-             'mongo', 'mssql', 'clickhouse', 'tarantool']
+DATABASES = [
+    'redis', 'postgres', 'mysql', 'mariadb',
+    'mongo', 'mssql', 'clickhouse', 'tarantool',
+]
 PROXIES = ['nginx', 'envoy']
 CLEANERS = ['dedcleaner']
 
@@ -60,17 +68,17 @@ def generate_flag(name):
     return name[0].upper() + ''.join(random.choices(alph, k=30)) + '='
 
 
-def colored_log(message: str, color: ColorType = ColorType.OKGREEN):
-    print(f'{color}[{current_thread().name}]{ColorType.ENDC} {message}')
+def colored_log(*messages, color: ColorType = ColorType.OKGREEN):
+    print(f'{color}[{current_thread().name}]{ColorType.ENDC}', *messages)
 
 
 class BaseValidator:
-    def _log(self, message: str, *, disable_log=False):
+    def _log(self, message: str):
         with OUT_LOCK:
             if not DISABLE_LOG:
                 colored_log(f'{self}: {message}')
 
-    def _assert(self, cond, message):
+    def _fatal(self, cond, message):
         global DISABLE_LOG
 
         with OUT_LOCK:
@@ -80,28 +88,26 @@ class BaseValidator:
                 DISABLE_LOG = True
                 raise AssertionError
 
-    def _warning(self, cond, message):
-        global DISABLE_LOG
-
+    def _warning(self, cond: bool, message: str) -> bool:
         with OUT_LOCK:
             if not cond:
                 if not DISABLE_LOG:
                     colored_log(f'{self}: {message}', color=ColorType.WARNING)
+        return not cond
 
-    def _error(self, cond, message):
-        global DISABLE_LOG
-
+    def _error(self, cond, message) -> bool:
         with OUT_LOCK:
             if not cond:
                 if not DISABLE_LOG:
                     colored_log(f'{self}: {message}', color=ColorType.FAIL)
+        return not cond
 
 
 class Checker(BaseValidator):
     def __init__(self, name: str):
         self._name = name
         self._exe_path = CHECKERS_PATH / self._name / 'checker.py'
-        self._assert(
+        self._fatal(
             os.access(self._exe_path, os.X_OK),
             f'{self._exe_path.relative_to(BASE_DIR)} must be executable',
         )
@@ -119,8 +125,10 @@ class Checker(BaseValidator):
         self._timeout = int(info['timeout'])
         self._attack_data = bool(info['attack_data'])
 
-        self._assert(60 > self._timeout > 0,
-                     f'invalid timeout: {self._timeout}')
+        self._fatal(
+            60 > self._timeout > 0,
+            f'invalid timeout: {self._timeout}',
+        )
 
     def _run_command(self, command: List[str]) -> Tuple[str, str]:
         try:
@@ -129,7 +137,7 @@ class Checker(BaseValidator):
                                check=False, timeout=self._timeout)
             end = time.monotonic()
         except subprocess.TimeoutExpired:
-            self._assert(False, 'command timeout expired')
+            self._fatal(False, 'command timeout expired')
             raise
 
         elapsed = end - start
@@ -139,7 +147,7 @@ class Checker(BaseValidator):
         out_s = out.rstrip('\n')
         err_s = err.rstrip('\n')
         self._log(f'time: {elapsed:.2f}s\nstdout:\n{out_s}\nstderr:\n{err_s}')
-        self._assert(p.returncode == 101, f'bad return code: {p.returncode}')
+        self._fatal(p.returncode == 101, f'bad return code: {p.returncode}')
 
         return out, err
 
@@ -153,13 +161,13 @@ class Checker(BaseValidator):
         cmd = [str(self._exe_path), 'put', HOST, flag_id, flag, str(vuln)]
         out, err = self._run_command(cmd)
 
-        self._assert(out, 'stdout is empty')
+        self._fatal(out, 'stdout is empty')
 
         new_flag_id = err
-        self._assert(new_flag_id, 'returned flag_id is empty')
+        self._fatal(new_flag_id, 'returned flag_id is empty')
 
         if self._attack_data:
-            self._assert(flag not in out, 'flag is leaked in public data')
+            self._fatal(flag not in out, 'flag is leaked in public data')
 
         return new_flag_id
 
@@ -188,8 +196,10 @@ class Service(BaseValidator):
         self._name = name
         self._path = SERVICES_PATH / self._name
         self._dc_path = self._path / 'docker-compose.yml'
-        self._assert(self._dc_path.exists(),
-                     f'{self._dc_path.relative_to(BASE_DIR)} missing')
+        self._fatal(
+            self._dc_path.exists(),
+            f'{self._dc_path.relative_to(BASE_DIR)} missing',
+        )
 
         self._checker = Checker(self._name)
 
@@ -203,7 +213,7 @@ class Service(BaseValidator):
 
     def up(self):
         self._log('starting')
-        self._run_dc('up', '--build', '-d')
+        self._run_dc('up', '--build', '-_dir')
 
     def logs(self):
         self._log('printing logs')
@@ -218,7 +228,10 @@ class Service(BaseValidator):
 
         cnt_threads = max(1, min(MAX_THREADS, RUNS // 10))
         self._log(f'starting {cnt_threads} checker threads')
-        with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor') as executor:
+        with ThreadPoolExecutor(
+                max_workers=cnt_threads,
+                thread_name_prefix='Executor',
+        ) as executor:
             for _ in executor.map(self._checker.run_all, range(1, RUNS + 1)):
                 pass
 
@@ -228,21 +241,19 @@ class Service(BaseValidator):
 
 class StructureValidator(BaseValidator):
     def __init__(self, d: Path, service: Service):
-        self.d = d
+        self._dir = d
         self._was_error = False
         self._service = service
 
     def _error(self, cond, message):
-        if not cond:
-            self._was_error = True
-            super()._error(cond, message)
+        self._was_error |= super()._error(cond, message)
 
     def validate(self):
         for d in VALIDATE_DIRS:
-            self.validate_dir(self.d / d / self._service.name)
+            self.validate_dir(self._dir / d / self._service.name)
         return not self._was_error
 
-    def validate_dir(self, d: Path = None):
+    def validate_dir(self, d: Path):
         if not d.exists():
             return
         for f in d.iterdir():
@@ -254,20 +265,26 @@ class StructureValidator(BaseValidator):
     def validate_file(self, f: Path):
         path = f.relative_to(BASE_DIR)
         self._error(f.suffix != '.yaml', f'file {path} has .yaml extension')
+        self._error(f.name != '.gitkeep', f'{path} found, should be named .keep')
 
         if f.name == 'docker-compose.yml':
-            with open(f, "r") as file:
+            with f.open() as file:
                 dc = yaml.safe_load(file)
 
             for opt in DC_REQUIRED_OPTIONS:
                 self._error(opt in dc, f'required option {opt} not in {path}')
 
-            self._error(dc['version'] == '2.4',
-                        f'version is not 2.4 in {path}')
+            dc_version = float(dc['version'])
+            self._error(
+                2.4 <= dc_version < 3,
+                f'invalid version in {path}, need >=2.4 and <3, got {dc_version}',
+            )
 
             for opt in dc:
-                self._error(opt in DC_ALLOWED_OPTIONS,
-                            f'option {opt} in {path} is not allowed')
+                self._error(
+                    opt in DC_ALLOWED_OPTIONS,
+                    f'option {opt} in {path} is not allowed',
+                )
 
             services = []
             databases = []
@@ -277,34 +294,36 @@ class StructureValidator(BaseValidator):
             for container in dc['services']:
                 for opt in CONTAINER_REQUIRED_OPTIONS:
                     self._error(
-                        opt in dc['services'][container], f'required option {opt} not in {path} for container {container}')
+                        opt in dc['services'][container],
+                        f'required option {opt} not in {path} for container {container}',
+                    )
 
                 for opt in dc['services'][container]:
-                    self._error(opt in CONTAINER_ALLOWED_OPTIONS,
-                                f'option {opt} in {path} is not allowed for container {container}')
-
-                if 'image' in container and 'build' in container:
                     self._error(
-                        False, f'both image and build options in {path} for container {container}')
+                        opt in CONTAINER_ALLOWED_OPTIONS,
+                        f'option {opt} in {path} is not allowed for container {container}',
+                    )
+
+                if self._error(
+                        'image' in container and 'build' in container,
+                        f'both image and build options in {path} for container {container}'):
                     continue
 
                 if 'image' in dc['services'][container]:
                     image = dc['services'][container]['image']
                 else:
                     build = dc['services'][container]['build']
-                    if type(build) == str:
+                    if isinstance(build, str):
                         dockerfile = f.parent / build / 'Dockerfile'
                     else:
                         context = build['context']
                         if 'dockerfile' in build:
-                            dockerfile = f.parent / \
-                                context / build['dockerfile']
+                            dockerfile = f.parent / context / build['dockerfile']
                         else:
                             dockerfile = f.parent / context / 'Dockerfile'
 
                     dfp = DockerfileParser()
-                    with open(dockerfile, 'r') as file:
-                        dfp.content = file.read()
+                    dfp.content = dockerfile.read_text()
                     image = dfp.baseimage
 
                 if 'depends_on' in dc['services'][container]:
@@ -332,24 +351,27 @@ class StructureValidator(BaseValidator):
                     services.append(container)
                     for opt in SERVICE_REQUIRED_OPTIONS:
                         self._warning(
-                            opt in dc['services'][container], f'required option {opt} not in {path} for service {container}')
+                            opt in dc['services'][container],
+                            f'required option {opt} not in {path} for service {container}',
+                        )
 
                     for opt in dc['services'][container]:
-                        self._warning(opt in SERVICE_ALLOWED_OPTIONS,
-                                      f'option {opt} in {path} is not allowed for service {container}')
+                        self._warning(
+                            opt in SERVICE_ALLOWED_OPTIONS,
+                            f'option {opt} in {path} is not allowed for service {container}',
+                        )
 
             for service in services:
                 for database in databases:
                     self._warning(
-                        service in dependencies and database in dependencies[service], f'service {service} may need to depends_on database {database}')
+                        service in dependencies and database in dependencies[service],
+                        f'service {service} may need to depends_on database {database}')
 
             for proxy in proxies:
                 for service in services:
                     self._warning(
-                        proxy in dependencies and service in dependencies[proxy], f'proxy {proxy} may need to depends_on service {service}')
-
-        elif f.name == '.gitkeep':
-            self._error(False, f'{path} found, should be named .keep')
+                        proxy in dependencies and service in dependencies[proxy],
+                        f'proxy {proxy} may need to depends_on service {service}')
 
     def __str__(self):
         return f'structure validator {self._service.name}'
@@ -402,7 +424,7 @@ def validate_structure(_args):
 
     if was_error:
         with OUT_LOCK:
-            colored_log(f'structure validator: failed', color=ColorType.FAIL)
+            colored_log('structure validator: failed', color=ColorType.FAIL)
             raise AssertionError
 
 
