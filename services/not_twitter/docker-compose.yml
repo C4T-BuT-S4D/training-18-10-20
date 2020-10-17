@@ -1,47 +1,40 @@
-version: '2'
+version: '2.4'
 
 services:
   postgres:
     image: postgres:11-alpine
-    ports:
-      - 5432:5432
     environment:
-        - POSTGRES_PASSWORD=postgres
-        - POSTGRES_DB=postgres
-        - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
     volumes:
-        - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: on-failure:3
-    networks:
-        - internal
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: on-failure
 
   not_twitter:
-    build: ./
+    build: .
     volumes:
       - ./uploads/:/services/not_twitter/uploads
-    working_dir: /services/not_twitter
-    container_name: not_twitter
-    restart: "always"
+    restart: on-failure
     depends_on:
-             - postgres
+      - postgres
+      - redis
     ports:
       - "3113:3113"
-    networks:
-      - default
-      - internal
     environment:
-      - REDIS_HOST=gredis
+      - REDIS_HOST=redis
       - UPLOAD_FOLDER=/services/not_twitter/uploads
 
   redis:
     image: redis
-    container_name: gredis
-    networks:
-      - internal
     restart: "always"
 
-networks:
-  default:
-  internal:
-    internal: true
-  
+  cleaner:
+    image: c4tbuts4d/dedcleaner:latest
+    restart: on-failure
+    volumes:
+      - ./uploads/:/uploads
+    environment:
+      - DELETE_AFTER=30m
+      - SLEEP=30m
+      - DIRS=/uploads

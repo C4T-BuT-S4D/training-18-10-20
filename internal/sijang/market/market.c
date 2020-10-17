@@ -67,6 +67,8 @@ int main()
 			free( args );
 			continue;
 		}
+
+		pthread_detach( tid );
 	}
 
 	return 0;
@@ -91,37 +93,37 @@ void* pthread_routine( void *args )
 	struct timeval tv;
 	tv.tv_sec = RECV_TIMEOUT;
 	tv.tv_usec = 0;
+
 	setsockopt( client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof( tv ) );
 	setsockopt( client_fd, SOL_SOCKET, SO_SNDTIMEO, (const char*) &tv, sizeof( tv ) );
+	
+	char* packet = (char*) malloc( REQ_TO_ADD_PACKET_SIZE + 16 );
 
-	char* packet = (char*) malloc( REQ_TO_ADD_PACKET_SIZE );
-	memset( packet, 0, REQ_TO_ADD_PACKET_SIZE );
-	int nbytes = recv( client_fd, packet, REQ_TO_ADD_PACKET_SIZE, 0 );
-
-	if ( nbytes <= 0 )
-	{	
-		perror( "[-] No data received!" );
-		pthread_exit( NULL );
-	}
-
-	char* ptr = strtok( packet, "|" );
-	ptr = strtok( NULL, "|" );
-	printf( "ptr = %s\n", ptr );
-	enum COMMANDS cmd = get_cmd_by_name( ptr );
-
-	// active wait	
 	while ( TRUE )
 	{	
+		memset( packet, 0, REQ_TO_ADD_PACKET_SIZE );
+		int nbytes = recv( client_fd, packet, REQ_TO_ADD_PACKET_SIZE, 0 );
+		//printf( "first packet = %s\n", packet );
+
+		if ( nbytes <= 0 )
+		{	
+			free( packet );
+			perror( "[-] No data received!" );
+			pthread_exit( NULL );
+		}
+
+		char* ptr = strtok( packet, "|" );
+		ptr = strtok( NULL, "|" );
+		enum COMMANDS cmd = get_cmd_by_name( ptr );
+
 		// try to lock mutex
 		if ( pthread_mutex_lock( &market_mutex ) == 0 )
 		{
-			free( packet );
-			packet = (char*) malloc( ACCESS_PACKET_SIZE );
-			memset( packet, 0, ACCESS_PACKET_SIZE );
+			char* req_packet = (char*) malloc( ACCESS_PACKET_SIZE + 16 );
+			memset( req_packet, 0, ACCESS_PACKET_SIZE );
+			strcpy( req_packet, "access" );
 
-			strcpy( packet, "access" );
-
-			nbytes = send( client_fd, packet, ACCESS_PACKET_SIZE, 0 );
+			nbytes = send( client_fd, req_packet, ACCESS_PACKET_SIZE, 0 );
 
 			if ( nbytes != ACCESS_PACKET_SIZE )
 			{
@@ -130,45 +132,52 @@ void* pthread_routine( void *args )
 				pthread_exit( NULL );
 			}
 
+			free( req_packet );
+
 			// get data from client
-			free( packet );
-			packet = (char*) malloc( MARKET_ITEM_SIZE );
-			memset( packet, 0, MARKET_ITEM_SIZE );
-			nbytes = recv( client_fd, packet, MARKET_ITEM_SIZE, 0 );
+			char* second_packet = (char*) malloc( MARKET_ITEM_SIZE + 16 );
+			memset( second_packet, 0, MARKET_ITEM_SIZE );
+			
+			nbytes = recv( client_fd, second_packet, MARKET_ITEM_SIZE, 0 );
+			//printf( "second_packet = %s\n", second_packet );
 
 			if ( nbytes <= 0 )
 			{
-				perror( "[-] Empty data from client!" );
+				nbytes = recv( client_fd, second_packet, MARKET_ITEM_SIZE, 0 );
+				printf( "[-] Empty data from client!" );
 				pthread_mutex_unlock( &market_mutex );
 				pthread_exit( NULL );
 			}
 
-			printf( "data = %s\n", packet );
-			proceed_packet( cmd, packet, client_fd );
-
+			proceed_packet( cmd, second_packet, client_fd );
 			pthread_mutex_unlock( &market_mutex );
 			break;
 		}
 		else
 		{
-			free( packet );
-			packet = (char*) malloc( BUSY_PACKET_SIZE );
-			memset( packet, 0, BUSY_PACKET_SIZE );
-			strcpy( packet, "busy" );
+			char* req_packet = (char*) malloc( BUSY_PACKET_SIZE + 16 );
+			memset( req_packet, 0, BUSY_PACKET_SIZE );
+			strcpy( req_packet, "busy" );
 
-			nbytes = send( client_fd, packet, BUSY_PACKET_SIZE, 0 );
+			nbytes = send( client_fd, req_packet, BUSY_PACKET_SIZE, 0 );
 
 			if ( nbytes != BUSY_PACKET_SIZE )
 			{
+				free( req_packet );
 				printf( "[-] Some problems in data send to client!" );
 				close( client_fd );
 				pthread_exit( NULL );
 			}
+
+			free( req_packet );
+			usleep( SLEEP_TIME );
 		}
 	}
 
+	free( packet );
 	close( client_fd );
 	pthread_exit( NULL );
+
 	return NULL;
 };
 
@@ -233,8 +242,6 @@ int market_init( void )
 	g_market = (market_header*) mmap( (void*) MARKET_BASE_ADDR, MARKET_MAX_SIZE, 
 		PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 
 	);
-
-	printf( "g_market = %p\n", g_market );
 
 	if ( g_market == NULL )
 	{
@@ -325,7 +332,9 @@ int get_page( char* packet, int client_fd )
 		return MARKET_IS_EMPTY;
 	}
 
-	char* req_packet = (char*) malloc( sizeof( market_item ) * one_page_count );
+	char* req_packet = (char*) malloc( (sizeof( market_item ) * one_page_count) + 64 );
+	memset( req_packet, 0, (sizeof( market_item ) * one_page_count) + 64 );
+
 	int items_cnt = 0;
 
 	int offset = 0;
@@ -352,7 +361,7 @@ int get_page( char* packet, int client_fd )
 			continue;
 
 		market_item* itm = &g_market->chunks[ i ];
-		printf( "item[%d]\n", i );
+		//printf( "item[%d]\n", i );
 
 		if ( itm->name != NULL && itm->cost != 0 && itm->token != 0 )
 		{
@@ -374,7 +383,7 @@ int get_page( char* packet, int client_fd )
 	send( client_fd, "page_items\0", 10, 0 );
 	usleep( 500 );
 	
-	printf( "get_page, req_packet = %s\n", req_packet );
+	//printf( "get_page, req_packet = %s\n", req_packet );
 
 	send( client_fd, req_packet, strlen( req_packet ), 0 );
 
@@ -411,7 +420,7 @@ int update_item( char* packet, int client_fd )
 int add_item( char* packet, int client_fd )
 {
 	char* ptr = strtok( packet, "|" );
-	
+
 	// check free space
 	int free_space = MARKET_MAX_SIZE - ( g_market->count_of_items * sizeof( market_item ) );
 
@@ -468,26 +477,62 @@ int add_item( char* packet, int client_fd )
 
 	// copy name to struct
 	ptr = strtok( NULL, "|" );
+
+	if ( ptr == NULL )
+	{
+		//printf( "SISGEV!!!, PACKET: %s\n", packet );
+		return SENDING_ERROR;
+	}
+
 	strcpy( g_market->chunks[ new_item_idx ].name, ptr );
 
 	// copy description to struct
 	ptr = strtok( NULL, "|" );
+	if ( ptr == NULL )
+	{
+		//printf( "SISGEV!!!, PACKET: %s\n", packet );
+		return SENDING_ERROR;
+	}
+
 	strcpy( g_market->chunks[ new_item_idx ].description, ptr );
 
 	// copy cost to struct
 	ptr = strtok( NULL, "|" );
+	if ( ptr == NULL )
+	{
+		//printf( "SISGEV!!!, PACKET: %s\n", packet );
+		return SENDING_ERROR;
+	}
+
 	g_market->chunks[ new_item_idx ].cost = atoi( ptr );
 
 	// copy quality to struct
 	ptr = strtok( NULL, "|" );
+	if ( ptr == NULL )
+	{
+		//printf( "SISGEV!!!, PACKET: %s\n", packet );
+		return SENDING_ERROR;
+	}
+
 	g_market->chunks[ new_item_idx ].quality = atoi( ptr );
 
 	// copy owner to struct
 	ptr = strtok( NULL, "|" );
+	if ( ptr == NULL )
+	{
+		//printf( "SISGEV!!!, PACKET: %s\n", packet );
+		return SENDING_ERROR;
+	}
+
 	strcpy( g_market->chunks[ new_item_idx ].owner, ptr );
 
 	// set is archived
 	ptr = strtok( NULL, "|" );
+	if ( ptr == NULL )
+	{
+		//printf( "SISGEV!!!, PACKET: %s\n", packet );
+		return SENDING_ERROR;
+	}
 
 	if ( atoi( ptr ) == 1 )
 		g_market->chunks[ new_item_idx ].is_archived = TRUE;
@@ -500,6 +545,13 @@ int add_item( char* packet, int client_fd )
 
 	// copy password
 	ptr = strtok( NULL, "|" );
+
+	if ( ptr == NULL )
+	{
+		//printf( "SISGEV!!!, PACKET: %s\n", packet );
+		return SENDING_ERROR;	
+	}
+
 	strcpy( g_market->chunks[ new_item_idx ].password, ptr );
 
 	// update file on FS
@@ -531,6 +583,12 @@ int full_item_info( char* packet, int client_fd )
 	char* ptr = strtok( packet, "|" ); // get magic
 	ptr = strtok( NULL, "|" ); // get token
 
+	if ( ptr == NULL )
+	{
+		item_not_found( client_fd );
+		return ITEM_NOT_FOUND;
+	}
+
 	DWORD f_token = atoi( ptr );
 
 	market_item* item = find_item_by_token( f_token );
@@ -545,6 +603,12 @@ int full_item_info( char* packet, int client_fd )
 	// check owner and password
 	ptr = strtok( NULL, "|" ); // get username
 
+	if ( ptr == NULL )
+	{
+		item_not_found( client_fd );
+		return ITEM_NOT_FOUND;
+	}
+
 	if ( strcmp( ptr, item->owner ) )
 	{
 		access_denied( client_fd );
@@ -552,6 +616,12 @@ int full_item_info( char* packet, int client_fd )
 	}
 
 	ptr = strtok( NULL, "|" ); // get password
+
+	if ( ptr == NULL )
+	{
+		item_not_found( client_fd );
+		return ITEM_NOT_FOUND;
+	}
 
 	if ( strcmp( ptr, item->password ) )
 	{
@@ -567,6 +637,7 @@ int full_item_info( char* packet, int client_fd )
 void send_item_info( int client_fd, market_item* item )
 {
 	char* packet = (char*) malloc( MARKET_ITEM_SIZE + 32 );
+	memset( packet, 0, MARKET_ITEM_SIZE );
 
 	sprintf( packet, "item_info|%s|%d|%d|%s|%d|%u|", 
 		item->name, item->cost, item->quality, item->owner, 
@@ -580,6 +651,7 @@ void send_item_info( int client_fd, market_item* item )
 void send_full_item_info( market_item* item, int client_fd )
 {
 	char* packet = (char*) malloc( MARKET_ITEM_SIZE + 32 );
+	memset( packet, 0, MARKET_ITEM_SIZE );
 
 	sprintf( packet, "full_item_info|%s|%s|%d|%d|%s|%d|%u|%s|", 
 		item->name, item->description, item->cost, item->quality, 
@@ -592,7 +664,8 @@ void send_full_item_info( market_item* item, int client_fd )
 
 void page_not_found( int client_fd )
 {
-	char* packet = (char*) malloc( MARKET_ITEM_SIZE );
+	char* packet = (char*) malloc( MARKET_ITEM_SIZE + 32 );
+	memset( packet, 0, MARKET_ITEM_SIZE );
 	strcpy( packet, "page_not_found" );
 
 	send( client_fd, packet, strlen( packet ), 0 );
@@ -601,7 +674,8 @@ void page_not_found( int client_fd )
 
 void market_is_empty( int client_fd )
 {
-	char* packet = (char*) malloc( MARKET_ITEM_SIZE );
+	char* packet = (char*) malloc( MARKET_ITEM_SIZE + 32 );
+	memset( packet, 0, MARKET_ITEM_SIZE );
 	strcpy( packet, "market_is_empty" );
 
 	send( client_fd, packet, strlen( packet ), 0 );
@@ -611,7 +685,8 @@ void market_is_empty( int client_fd )
 void item_updated( int client_fd )
 {
 
-	char* packet = (char*) malloc( MARKET_ITEM_SIZE );
+	char* packet = (char*) malloc( MARKET_ITEM_SIZE + 32 );
+	memset( packet, 0, MARKET_ITEM_SIZE );
 	strcpy( packet, "item_updated" );
 
 	send( client_fd, packet, strlen( packet ), 0 );
@@ -620,7 +695,9 @@ void item_updated( int client_fd )
 
 void access_denied( int client_fd )
 {
-	char* packet = (char*) malloc( MARKET_ITEM_SIZE );
+	char* packet = (char*) malloc( MARKET_ITEM_SIZE + 32 );
+	memset( packet, 0, MARKET_ITEM_SIZE );
+
 	strcpy( packet, "access_denied" );
 
 	send( client_fd, packet, strlen( packet ), 0 );
@@ -629,7 +706,9 @@ void access_denied( int client_fd )
 
 void item_not_found( int client_fd )
 {
-	char* packet = (char*) malloc( MARKET_ITEM_SIZE );
+	char* packet = (char*) malloc( MARKET_ITEM_SIZE + 32);
+	memset( packet, 0, MARKET_ITEM_SIZE );
+
 	strcpy( packet, "item_not_found" );
 
 	send( client_fd, packet, strlen( packet ), 0 );

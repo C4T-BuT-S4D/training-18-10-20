@@ -56,7 +56,7 @@ typedef struct s_market_header {
 #define TRUE 1
 
 #define MARKET_PORT 9999
-#define LISTEN_CNT 32
+#define LISTEN_CNT 64
 #define RECV_TIMEOUT 1
 #define REQ_TO_ADD_PACKET_SIZE 256
 #define MARKET_ITEM_SIZE 256
@@ -81,6 +81,7 @@ typedef struct s_market_header {
 #define MARKET_IS_EMPTY 0x1116
 
 #define ITEM_ADDED 0x2221
+#define SLEEP_TIME 500000
 
 enum COMMANDS { ADD_ITEM, DEL_ITEM, VIEW_ITEMS, 
 	CHANGE_STATUS, FULL_ITEM_INFO, UPDATE_ITEM,
@@ -115,7 +116,8 @@ int find_item_idx_by_token( DWORD token );
 market_header* g_market;
 
 
-
+// Requests
+// username|<cmd_name>
 // add item req packet
 // magic|<item-name>|<description>|<cost>|<quality>|<owner>|<archived>|<token>|<password>
 // 
@@ -124,4 +126,9 @@ market_header* g_market;
 // 
 // get_page
 // magic|<page-number>|<count on one page>|
+
+// Response
+
+// item_not_added # if item not added
+// item_added # if item not added
 // 
