@@ -33,12 +33,12 @@ install:
   - pip install -r requirements.txt
   - pip install -r checkers/requirements.txt
   - ./check.py list
+  - ./check.py validate
   - ./check.py up
   - docker-compose -f internal/sumgyeojin/raider/docker-compose.yml up --build -d
 
 before_script:
   - sleep 60
-  - ./check.py validate
 
 script:
   - ./check.py check
