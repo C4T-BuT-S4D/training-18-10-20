@@ -17,7 +17,7 @@ from typing import List, Tuple
 BASE_DIR = Path(__file__).resolve().absolute().parent
 SERVICES_PATH = BASE_DIR / 'services'
 CHECKERS_PATH = BASE_DIR / 'checkers'
-MAX_THREADS = int(os.getenv('MAX_THREADS', default=16))
+MAX_THREADS = int(os.getenv('MAX_THREADS', default=os.cpu_count()))
 RUNS = int(os.getenv('RUNS', default=10))
 HOST = os.getenv('HOST', default='127.0.0.1')
 OUT_LOCK = Lock()
@@ -69,7 +69,7 @@ class Checker(BaseValidator):
             p = subprocess.run(command, capture_output=True, check=False, timeout=self._timeout)
             end = time.monotonic()
         except subprocess.TimeoutExpired:
-            self._log('command timeout expired')
+            self._assert(False, 'command timeout expired')
             raise
 
         elapsed = end - start
@@ -156,7 +156,8 @@ class Service(BaseValidator):
         cnt_threads = max(1, min(MAX_THREADS, RUNS // 10))
         self._log(f'starting {cnt_threads} checker threads')
         with ThreadPoolExecutor(max_workers=cnt_threads, thread_name_prefix='Executor') as executor:
-            executor.map(self._checker.run_all, range(1, RUNS + 1))
+            for _ in executor.map(self._checker.run_all, range(1, RUNS + 1)):
+                pass
 
     def __str__(self):
         return f'service {self._name}'

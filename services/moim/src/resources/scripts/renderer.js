@@ -1,10 +1,7 @@
 "use strict";
-var page = require('webpage').create(), system = require('system'), address, output, size;
+var page = require('webpage').create(), system = require('system'), address, output;
 
-if (system.args.length < 3 || system.args.length > 5) {
-    console.log('  paper (pdf output) examples: "5in*7.5in", "10cm*20cm", "A4", "Letter"');
-    console.log('  image (png/jpg output) examples: "1920px" entire page, window width 1920px');
-    console.log('                                   "800px*600px" window, clipped to 800x600');
+if (system.args.length < 3) {
     phantom.exit(1);
 } else {
     address = system.args[1];
@@ -20,7 +17,7 @@ if (system.args.length < 3 || system.args.length > 5) {
             window.setTimeout(function () {
                 page.render(output);
                 phantom.exit();
-            }, 500);
+            }, 175);
         }
     });
 }
