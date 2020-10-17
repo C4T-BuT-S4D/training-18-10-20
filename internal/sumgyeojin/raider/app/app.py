@@ -16,9 +16,9 @@ RUNNER_CFG_PATH = BASE_DIR / 'nsjail_pg' / 'runner.cfg'
 NASM_PATH = BASE_DIR / 'nasm'
 TOKENS_PATH = BASE_DIR / 'tokens.txt'
 
-TEAMS = 32
 COOLDOWN = 15
 TOKENS = set(token.split(':')[1] for token in TOKENS_PATH.read_text().split('\n') if token)
+TEAMS = len(TOKENS)
 
 app = Flask(__name__)
 
