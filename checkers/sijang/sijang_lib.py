@@ -9,8 +9,8 @@ context.log_level = 'CRITICAL'
 PORT = 9999
 
 # global const
-TCP_CONNECTION_TIMEOUT = 5
-TCP_OPERATIONS_TIMEOUT = 7
+TCP_CONNECTION_TIMEOUT = 10
+TCP_OPERATIONS_TIMEOUT = 10
 alph = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789'
 
 class CheckMachine:
@@ -27,6 +27,7 @@ class CheckMachine:
 				self.port, 
 				timeout = TCP_CONNECTION_TIMEOUT 
 			)
+			self.sock.settimeout( TCP_CONNECTION_TIMEOUT )
 		except:
 			self.sock = None
 			self.c.cquit( Status.DOWN, 
@@ -137,13 +138,16 @@ class CheckMachine:
 		else:
 			self.sock.send( b"n\n" )
 
-		data = self.sock.recvuntil( b"Item is " )
-		data += self.sock.recv()
+		data = self.sock.recv()
+
+		while b"Item is " not in data:
+		#data = self.sock.recvuntil( b"Item is " )
+			data += self.sock.recv()
 
 		if b"[+] Item is added" not in data:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't add item to market",
-				"Checker.sell_flag_weapon(): out_data = {}".format( data )
+				"Checker.sell_weapon(): out_data = {}".format( data )
 			)
 
 		while b"token" not in data:
@@ -152,7 +156,7 @@ class CheckMachine:
 			except:
 				self.c.cquit( Status.MUMBLE, 
 				"Can't get item token",
-				"Checker.sell_flag_weapon(): out_data = {}".format( data )
+				"Checker.sell_weapon(): out_data = {}".format( data )
 			)
 
 		try:
@@ -161,7 +165,7 @@ class CheckMachine:
 		except:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't get item token",
-				"Checker.sell_flag_weapon(): out_data = {}".format( data )
+				"Checker.sell_weapon(): out_data = {}".format( data )
 			)
 
 		self.sock.send( b"\n" )
