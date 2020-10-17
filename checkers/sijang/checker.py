@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
-# from gevent import monkey
+from gevent import monkey, sleep
 
-# monkey.patch_all()
+monkey.patch_all()
 
 import sys
 import os
 import string
 import random
 import copy
-from time import sleep
 
 from checklib import *
 
@@ -34,8 +33,11 @@ class Checker(BaseChecker):
 	def action(self, action, *args, **kwargs):
 		try:
 			super( Checker, self ).action( action, *args, **kwargs )
-		except pwnlib.exception.PwnlibException:
-			self.cquit( Status.DOWN, 'Connection error', 'Pwntools connection error!' )
+		except pwnlib.exception.PwnlibException as err:
+			self.cquit( Status.DOWN, 
+				'Connection error', 
+				'Pwntools connection error: Error: {}'.format( err ) 
+			)
 
 	def check( self ):
 		self.mch.connection()
@@ -123,7 +125,7 @@ class Checker(BaseChecker):
 	def get( self, flag_id, flag, vuln ):
 		username, password, token = flag_id.split( ":" )
 
-		# print(username)
+		#print(username)
 
 		# # check register and login
 		# if "EXECUTOR" in os.environ.keys():

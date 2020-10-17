@@ -3,6 +3,7 @@ from checklib import *
 
 import random
 import string
+from time import sleep
 
 context.log_level = 'CRITICAL'
 
@@ -237,6 +238,7 @@ class CheckMachine:
 		return token
 
 	def get_item_by_token( self, token ):
+		sleep( 0.1 )
 		self.sock.send( b"4\n" )
 		self.sock.recvuntil( b"token: " )
 
@@ -264,6 +266,7 @@ class CheckMachine:
 		return data
 
 	def get_archive_item( self, token ):
+		sleep( 0.1 )
 		self.sock.send( b"4\n" )
 		self.sock.recvuntil( b"token: " )
 
