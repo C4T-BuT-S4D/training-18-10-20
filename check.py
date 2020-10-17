@@ -269,6 +269,11 @@ class StructureValidator(BaseValidator):
                 self._error(opt in DC_ALLOWED_OPTIONS,
                             f'option {opt} in {path} is not allowed')
 
+            services = []
+            databases = []
+            proxies = []
+            dependencies = {}
+
             for container in dc['services']:
                 for opt in CONTAINER_REQUIRED_OPTIONS:
                     self._error(
@@ -279,7 +284,8 @@ class StructureValidator(BaseValidator):
                                 f'option {opt} in {path} is not allowed for container {container}')
 
                 if 'image' in container and 'build' in container:
-                    self._error(False, f'both image and build options in {path} for container {container}')
+                    self._error(
+                        False, f'both image and build options in {path} for container {container}')
                     continue
 
                 if 'image' in dc['services'][container]:
@@ -291,7 +297,8 @@ class StructureValidator(BaseValidator):
                     else:
                         context = build['context']
                         if 'dockerfile' in build:
-                            dockerfile = f.parent / context / build['dockerfile']
+                            dockerfile = f.parent / \
+                                context / build['dockerfile']
                         else:
                             dockerfile = f.parent / context / 'Dockerfile'
 
@@ -300,25 +307,52 @@ class StructureValidator(BaseValidator):
                         dfp.content = file.read()
                     image = dfp.baseimage
 
+                if 'depends_on' in dc['services'][container]:
+                    for dependency in dc['services'][container]:
+                        if container not in dependencies:
+                            dependencies[container] = []
+                        dependencies[container].append(dependency)
+
                 is_service = True
-                for not_service in DATABASES + PROXIES + CLEANERS:
-                    if not_service in image:
+                for database in DATABASES:
+                    if database in image:
+                        databases.append(container)
+                        is_service = False
+
+                for proxy in PROXIES:
+                    if proxy in image:
+                        proxies.append(container)
+                        is_service = False
+
+                for cleaner in CLEANERS:
+                    if cleaner in image:
                         is_service = False
 
                 if is_service:
+                    services.append(container)
                     for opt in SERVICE_REQUIRED_OPTIONS:
                         self._warning(
                             opt in dc['services'][container], f'required option {opt} not in {path} for service {container}')
 
                     for opt in dc['services'][container]:
                         self._warning(opt in SERVICE_ALLOWED_OPTIONS,
-                                    f'option {opt} in {path} is not allowed for service {container}')
+                                      f'option {opt} in {path} is not allowed for service {container}')
+
+            for service in services:
+                for database in databases:
+                    self._warning(
+                        service in dependencies and database in dependencies[service], f'service {service} may need to depends_on database {database}')
+
+            for proxy in proxies:
+                for service in services:
+                    self._warning(
+                        proxy in dependencies and service in dependencies[proxy], f'proxy {proxy} may need to depends_on service {service}')
 
         elif f.name == '.gitkeep':
             self._error(False, f'{path} found, should be named .keep')
 
     def __str__(self):
-        return f'structure validator'
+        return f'structure validator {self._service.name}'
 
 
 def get_services() -> List[Service]:
