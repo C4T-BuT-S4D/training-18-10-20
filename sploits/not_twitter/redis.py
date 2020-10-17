@@ -23,7 +23,7 @@ uploads_html = s.get(url + f'/uploads?user={hint}').text
 files_info = find_fileinfo_regexp.findall(uploads_html)
 filenames = [f"{x.split(': ')[0]}_{x.split(': ')[1]}" for x in files_info]
 
-#download all new files
+#download all "hint" user's files
 
 for filename in filenames:
     print(s.get(url + '/uploads/' + filename).text)
