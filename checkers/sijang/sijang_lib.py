@@ -138,13 +138,16 @@ class CheckMachine:
 			self.sock.send( b"n\n" )
 
 		self.sock.recvuntil( b"> " )
-		data = self.sock.recv()
+		data = self.sock.recvline().strip()
+		#print( "data = ", data )
 
-		if b"[+] Item is added to market!" not in data:
+		if b"[+] Item is added" not in data:
 			self.c.cquit( Status.MUMBLE, 
 				"Can't add item to market",
 				"Checker.sell_flag_weapon(): out_data = {}".format( data )
 			)
+
+		data = self.sock.recvline()
 
 		try:
 			token = data.split( b'\n' )[ 1 ].split( b": " )[-1]

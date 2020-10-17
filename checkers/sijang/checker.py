@@ -33,8 +33,8 @@ class Checker(BaseChecker):
 	def action(self, action, *args, **kwargs):
 		try:
 			super( Checker, self ).action( action, *args, **kwargs )
-		except pwnlib.exception.PwnlibException as err:
-			self.cquit( Status.DOWN, 'Connection error', 'Pwntools connection error: Error: {}'.format( err ) )
+		except pwnlib.exception.PwnlibException:
+			self.cquit( Status.DOWN, 'Connection error', 'Pwntools connection error!' )
 
 	def check( self ):
 		self.mch.connection()
