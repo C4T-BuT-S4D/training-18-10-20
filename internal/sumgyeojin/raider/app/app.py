@@ -2,6 +2,8 @@ import logging
 import os
 import tempfile
 import time
+import redis
+import json
 from pathlib import Path
 
 from flask import Flask, request, jsonify
@@ -20,8 +22,31 @@ TOKENS = set(token.split(':')[1] for token in TOKENS_PATH.read_text().split('\n'
 
 app = Flask(__name__)
 
-flags = {}
+R = redis.Redis(host='redis', port=6379, db=0)
 
+@app.route('/6c04c574b7fa315f9ad8_checker_write_file_check', methods=["POST"])
+def checker_write_file_check():
+    d = request.json
+    filename = d["filename"]
+    bytecode = d["bytecode"]
+    team = d["team"]
+
+    with tempfile.TemporaryDirectory() as dirname:
+        os.chmod(dirname, 0o777)
+        cmd = NSJailCommand(
+            cmd=['/runner', bytecode],
+            config=str(RUNNER_CFG_PATH),
+            other=[
+                '--bindmount', f"{dirname}:/jail",
+                '--bindmount', f"{RUNNER_PATH}:/runner",
+            ],
+            logger=app.logger,
+        )
+        cmd.run(output_limit=8192)
+        with open(f"{dirname}/{filename}", "r") as f:
+            s = f.read()
+
+    return jsonify({"result": s})
 
 @app.route('/6c04c574b7fa315f9ad8_checker_write_file', methods=["POST"])
 def checker_write_file():
@@ -45,7 +70,8 @@ def checker_write_file():
         with open(f"{dirname}/{filename}", "r") as f:
             s = f.read()
 
-    flags[team] = (s, filename)
+    with R.pipeline(transaction=False) as P:
+        P.set(team, json.dumps((s, filename))).execute()
 
     return jsonify({"result": s})
 
@@ -75,10 +101,7 @@ def checker_read_file():
     return jsonify({"result": res})
 
 
-last_attack = {}
-
-
-@app.route('/attack')
+@app.route('/attack', methods=["POST"])
 def attack():
     d = request.json
     if "bytecode" not in d or not isinstance(d["bytecode"], str):
@@ -100,16 +123,24 @@ def attack():
     if team < 0 or team >= TEAMS:
         return jsonify({"error": "invalid team"}), 400
 
-    if team not in flags:
-        return jsonify({"error": "team has no flag"}), 400
+    with R.pipeline(transaction=False) as P:
+        if not P.exists(team).execute()[0]:
+            return jsonify({"error": "team has no flag"}), 400
 
-    # FIXME: low-probability race condition here
-    # threading.Lock won't help with gunicorn workers (LWP, not threads), need to use e.g. redis
-    if (token, team) in last_attack and last_attack[(token, team)] > time.time() - COOLDOWN:
-        return jsonify({"error": "too fast"}), 429
-    last_attack[(token, team)] = time.time()
+    with R.pipeline(transaction=False) as P:
+        K = json.dumps({
+            "token": token,
+            "team": team
+        })
 
-    flag, filename = flags[team]
+        if not P.set(K, 1, ex=COOLDOWN, nx=True).execute()[0]:
+            return jsonify({"error": "too fast"}), 429
+
+    with R.pipeline(transaction=False) as P:
+        J = P.get(team).execute()[0]
+        flag, filename = json.loads(J)
+
+    app.logger.info(f"{token} is attacking {team} with flag {flag}")
 
     with tempfile.TemporaryDirectory() as dirname:
         os.chmod(dirname, 0o777)

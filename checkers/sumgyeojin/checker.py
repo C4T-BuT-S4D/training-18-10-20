@@ -32,7 +32,7 @@ class Checker(BaseChecker):
         bc = write_to_file(f"/jail/{flag_filename}", rs)
         vmid = self.mch.create_vm(s, bc)
         bc = self.mch.get_vm(s, vmid)
-        self.mch.run_write_to_file(s, bc, flag_filename, rs)
+        self.mch.run_write_to_file(s, bc, flag_filename, rs, suffix="_check")
 
         bc = read_from_file(f"/jail/{flag_filename}", len(rs))
         vmid = self.mch.create_vm(s, bc)

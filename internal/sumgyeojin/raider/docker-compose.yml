@@ -6,3 +6,8 @@ services:
     ports:
       - 5000:5000
     privileged: true
+    depends_on:
+      - redis
+  redis:
+    image: redis
+    restart: on-failure

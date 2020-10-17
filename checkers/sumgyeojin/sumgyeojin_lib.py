@@ -37,8 +37,8 @@ class CheckMachine:
 
         return d["result"]
 
-    def run_write_to_file(self, s, bc, filename, string, status=Status.MUMBLE):
-        r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_write_file", json={
+    def run_write_to_file(self, s, bc, filename, string, status=Status.MUMBLE, suffix=""):
+        r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_write_file{suffix}", json={
             "filename": filename,
             "bytecode": bc,
             "team": int(self.c.host.split('.')[-2])
