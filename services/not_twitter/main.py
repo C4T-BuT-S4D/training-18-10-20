@@ -96,7 +96,7 @@ def login():
                     return render_template('message.html', message=message), 400
             session['user'] = user.cookie
             redis_controller.add_to_store(login, session['user'])
-            return redirect(url_for('upload_text'))
+            return redirect(url_for('file_listing'))
         except ValueError:
             message= "Incorrect username"
             return render_template('message.html', message=message), 403
