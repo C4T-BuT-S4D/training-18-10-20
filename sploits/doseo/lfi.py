@@ -24,12 +24,12 @@ uploads_html = s.get(url + f'/uploads?limit={limit}&offset={offset}').text
 files_info = find_fileinfo_regexp.findall(uploads_html)
 filenames = [f"{x.split(': ')[0]}_{x.split(': ')[1]}" for x in files_info]
 
-#for every file upload new by link 'file:///services/not_twitter/uploads' + old filename
+#for every file upload new by link 'file:///services/doseo/uploads' + old filename
 
 copy_filenames = []
 
 for filename in filenames:
-    link = f"file:///services/not_twitter/uploads/{filename}"
+    link = f"file:///services/doseo/uploads/{filename}"
     r = s.post(url + '/upload_by_link', data = {'link':link})
     new_link = new_filename_link.findall(r.text)[0]
     copy_filenames.append(new_link)
