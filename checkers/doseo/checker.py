@@ -3,7 +3,7 @@
 from gevent import monkey
 monkey.patch_all()
 
-from not_twitter_lib import CheckMachine
+from doseo_lib import CheckMachine
 from checklib import BaseChecker, Status
 from checklib import rnd_username, rnd_password
 from checklib import cquit

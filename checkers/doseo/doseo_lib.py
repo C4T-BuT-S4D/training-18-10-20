@@ -41,7 +41,7 @@ class CheckMachine:
         """
         return filename of uploaded file
         """
-        #example_link = f"file:///services/not_twitter/uploads/{filename}"
+        #example_link = f"file:///services/doseo/uploads/{filename}"
         r = session.post(self.url + '/upload_by_link', data = {'link':link})
         self.c.assert_eq(200, r.status_code, "Can't upload file by link", status=status)
         new_link = new_filename_link.findall(r.text)[0]
@@ -110,6 +110,6 @@ class CheckMachine:
         with open(local_path, "r") as f:
             lines = f.readlines()
             link = choice(lines)
-            sys.stderr.write(f"link: {link}")
+            #sys.stderr.write(f"link: {link}")
             self.check_upload_by_link(session, link, username, status=status)
             

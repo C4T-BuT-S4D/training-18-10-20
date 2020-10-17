@@ -11,10 +11,10 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: on-failure
 
-  not_twitter:
+  doseo:
     build: .
     volumes:
-      - ./uploads/:/services/not_twitter/uploads
+      - ./uploads/:/services/doseo/uploads
     restart: on-failure
     depends_on:
       - postgres
@@ -23,7 +23,7 @@ services:
       - "3113:3113"
     environment:
       - REDIS_HOST=redis
-      - UPLOAD_FOLDER=/services/not_twitter/uploads
+      - UPLOAD_FOLDER=/services/doseo/uploads
 
   redis:
     image: redis
