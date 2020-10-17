@@ -1,7 +1,6 @@
 from hashlib import md5
 import re
 import redis_controller
-username_pattern = re.compile(r"^[A-Za-z0-9]+$")
 
 class User:
     def __init__(self, login, password):
@@ -14,10 +13,10 @@ class User:
         #redis_controller.add_to_store(self.login, self.cookie)
     
     def check_username(self, username):
-        if username_pattern.match(username):
-            return True
-        else:
+        if '_' in username:
             return False
+        else:
+            return True
 
 
 def check_auth(session_user_cookie):
