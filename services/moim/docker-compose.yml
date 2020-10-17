@@ -1,0 +1,51 @@
+version: '2.4'
+services:
+  app:
+    build: src
+    environment:
+      - STORAGE_BASE_PATH=/storage
+      - QUEUE_WORKERS=4
+    volumes:
+      - "./data:/storage"
+    restart: on-failure
+    depends_on:
+      - db
+    cpus: 2
+    mem_limit: 2048m
+    restart: on-failure
+  nginx:
+    image: nginx:1.18.0-alpine
+    restart: on-failure
+    volumes:
+      - ./front/app.conf:/etc/nginx/conf.d/default.conf
+      - ./front/proxy_params:/etc/nginx/proxy_params
+      - ./front/build:/front/build
+      - ./data:/data
+    depends_on:
+      - app
+    restart: on-failure
+
+    ports:
+      - "8000:80"
+  db:
+    image: postgres:10.8-alpine
+    restart: on-failure
+    volumes:
+      - ./data/db:/var/lib/postgresql/data 
+    environment:
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=moim
+      - POSTGRES_DB=moim
+      - POSTGRES_PASSWORD=moim
+  cleaner:
+    image: c4tbuts4d/dedcleaner:latest
+    restart: on-failure
+    volumes:
+      - "./data:/storage"
+    environment:
+      - DELETE_AFTER=30m
+      - SLEEP=30m
+      - DIRS=/storage/tickets,/storage/templates
+
+
+
