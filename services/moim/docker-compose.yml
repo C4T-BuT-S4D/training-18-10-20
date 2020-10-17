@@ -1,4 +1,4 @@
-version: '2'
+version: '2.4'
 services:
   app:
     build: src
@@ -7,6 +7,7 @@ services:
       - QUEUE_WORKERS=8
     volumes:
       - "./data:/storage"
+    restart: on-failure
     depends_on:
       - db
   nginx:
@@ -18,6 +19,8 @@ services:
       - ./data:/data
     depends_on:
       - app
+    restart: on-failure
+
     ports:
       - "8000:80"
   db:

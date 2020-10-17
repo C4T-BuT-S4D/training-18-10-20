@@ -16,7 +16,7 @@ services:
         - internal
 
   not_twitter:
-    build: ./
+    build: .
     volumes:
       - ./uploads/:/services/not_twitter/uploads
     working_dir: /services/not_twitter
@@ -44,4 +44,4 @@ networks:
   default:
   internal:
     internal: true
-  
+
