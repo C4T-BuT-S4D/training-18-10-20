@@ -32,12 +32,6 @@ class AppStorage
     {
         $this->ticketBase = $this->join($baseFolder, self::ticketsDir);
         $this->templatesBase = $this->join($baseFolder, self::templatesDir);
-        if (!file_exists($this->ticketBase)) {
-            mkdir($this->ticketBase, 0777, true);
-        }
-        if (!file_exists($this->templatesBase)) {
-            mkdir($this->templatesBase, 0777, true);
-        }
     }
 
     public function templatePath($id)

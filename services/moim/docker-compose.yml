@@ -30,8 +30,6 @@ services:
   db:
     image: postgres:12.2
     restart: on-failure
-    volumes:
-      - ./data/db:/var/lib/postgresql/data 
     environment:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=moim
