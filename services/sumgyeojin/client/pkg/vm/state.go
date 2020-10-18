@@ -2,6 +2,10 @@ package vm
 
 import (
 	"io"
+	"log"
+	"reflect"
+	"syscall"
+	"unsafe"
 )
 
 type State interface {
@@ -85,6 +89,22 @@ const (
 )
 
 func newState() State {
+	skek, err := syscall.Mmap(
+		-1,
+		0,
+		SkekSize*8,
+		syscall.PROT_READ|syscall.PROT_WRITE|syscall.PROT_EXEC,
+		syscall.MAP_PRIVATE|syscall.MAP_ANONYMOUS,
+	)
+
+	if err != nil {
+		log.Fatal("Can't allocate skek")
+	}
+
+	for i := 0; i < SkekSize*8; i += 1 {
+		skek[i] = 0
+	}
+
 	return &state{
 		r:        &iregister{mapping: "r8", mappingByte: "r8b"},
 		j:        &iregister{mapping: "r9", mappingByte: "r9b"},
@@ -97,6 +117,10 @@ func newState() State {
 		d:        &sregister{mapping: "rbp"},
 		linear:   &iregister{mapping: "rbx", mappingByte: "bl"},
 		frame:    &iregister{mapping: "rcx", mappingByte: "cl"},
-		skek:     make([]int64, SkekSize),
+		skek: *(*[]int64)(unsafe.Pointer(&reflect.SliceHeader{
+			Data: uintptr(unsafe.Pointer(&skek[0])),
+			Len:  SkekSize,
+			Cap:  SkekSize,
+		})),
 	}
 }
