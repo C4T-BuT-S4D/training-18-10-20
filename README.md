@@ -14,10 +14,10 @@ Sources of services, checkers and sploits from 18th October 2020 training.
 
 | Service | Lang | Checker | Sploits | Author |
 |--------|------|-------|---------|-------|
-| **[doseo](services/doseo/)** | doseo | [Checker](checkers/doseo/) | [Sploits](sploits/doseo/) | [@amoniaka-knabino](https://github.com/amoniaka-knabino) |
-| **[moim](services/moim/)** | moim | [Checker](checkers/moim/) | [Sploits](sploits/moim/) | [@jnovikov](https://github.com/jnovikov) |
-| **[sijang](services/sijang/)** | sijang | [Checker](checkers/sijang/) | [Sploits](sploits/sijang/) | [@revervand](https://github.com/revervand) |
-| **[sumgyeojin](services/sumgyeojin/)** | sumgyeojin | [Checker](checkers/sumgyeojin/) | [Sploits](sploits/sumgyeojin/) | [@xmikasax](https://github.com/xmikasax) |
+| **[doseo](services/doseo/)** | Python | [Checker](checkers/doseo/) | [Sploits](sploits/doseo/) | [@amoniaka-knabino](https://github.com/amoniaka-knabino) |
+| **[moim](services/moim/)** | Php | [Checker](checkers/moim/) | [Sploits](sploits/moim/) | [@jnovikov](https://github.com/jnovikov) |
+| **[sijang](services/sijang/)** | C | [Checker](checkers/sijang/) | [Sploits](sploits/sijang/) | [@revervand](https://github.com/revervand) |
+| **[sumgyeojin](services/sumgyeojin/)** | Golang, Assembler | [Checker](checkers/sumgyeojin/) | [Sploits](sploits/sumgyeojin/) | [@xmikasax](https://github.com/xmikasax) |
 
 
 ## Infrastructure
