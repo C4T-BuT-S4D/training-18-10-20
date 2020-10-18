@@ -10,7 +10,7 @@ def copysign(a, b):
 
 def generate_number(registers, register, temp_register, target_value):
     registers = copy(registers)
-    operations = ['m', 'i', 'd', '+', '-', '*', '/', '&', '|', '^', '~']
+    operations = ['m', 'i', 'd', '+', '-', '*', '/', '&', '|', '^', '~', 'B']
 
     code = ""
 
@@ -71,6 +71,10 @@ def generate_number(registers, register, temp_register, target_value):
             tg = choice([register, temp_register])
             code += f"{op}{tg}"
             registers[tg] = ~registers[tg]
+        elif op == 'B':
+            tg = choice([register, temp_register])
+            code += f"B{tg}^{tg}{tg}"
+            registers[tg] *= 0
 
     if abs(registers[register] - target_value) > 300:
         code += f"m{register}{temp_register}"

