@@ -24,8 +24,3 @@ Sources of services, checkers and sploits from 18th October 2020 training.
 
 - DevOps: [@pomo-mondreganto](https://github.com/pomo-mondreganto).
 - Checksystem: [ForcAD](https://github.com/pomo-mondreganto/ForcAD)
-
-
-## Writeups
-
-Coming...
