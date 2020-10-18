@@ -6,6 +6,7 @@ import (
 	"io"
 	"sumgyeojin/pkg/jit"
 	"syscall"
+	"unsafe"
 )
 
 var ErrUnjittableOperation = errors.New("operation can't be jitted")
@@ -55,6 +56,15 @@ func getOperation(s State, r io.Reader) (Operation, error) {
 		return &oSMov{
 			from: ops[1],
 			to:   ops[0],
+		}, nil
+	case 'B':
+		ops, err := getIOperands(s, r, 1)
+		if err != nil {
+			return nil, err
+		}
+
+		return &oStackFrame{
+			target: ops[0],
 		}, nil
 	case 'i':
 		ops, err := getIOperands(s, r, 1)
@@ -496,6 +506,19 @@ func (o *oSMov) JIT(s State) ([]byte, error) {
 	`,
 		o.to.ASMRegister(),
 		o.from.ASMRegister()))
+}
+
+type oStackFrame struct {
+	target IRegister
+}
+
+func (o *oStackFrame) Apply(s State) error {
+	o.target.Set(int64(uintptr(unsafe.Pointer(&s.Skek()[0]))))
+	return nil
+}
+
+func (o *oStackFrame) JIT(s State) ([]byte, error) {
+	return nil, ErrUnjittableOperation
 }
 
 type oInc struct {
