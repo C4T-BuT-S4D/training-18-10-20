@@ -9,7 +9,7 @@ from helpers import *
 import redis_controller
 import database_controller
 
-default_upload_folder = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/not_twitter/uploads'
+default_upload_folder = 'C://workspace/ctf/dev/training-XX-YY-ZZZZ/services/doseo/uploads'
 UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", default_upload_folder)
 MAX_FILESIZE = 1024
 MAX_FILE_COUNT_IN_LISTING = 128
@@ -37,8 +37,12 @@ def upload_file():
         return redirect(url_for('login'))
     if request.method == 'POST':
         link = request.form['link']
-        file_resp = urllib.request.urlopen(link)
-        file_bytes = file_resp.read(MAX_FILESIZE)
+        try:
+            file_resp = urllib.request.urlopen(link)
+            file_bytes = file_resp.read(MAX_FILESIZE)
+        except Exception:
+            message = f"Error during downloading the page"
+            return render_template('message.html', message=message)
         if file_bytes:
             cookie = session["user"]
             user_model.check_auth(cookie)
@@ -86,13 +90,13 @@ def login():
             user = user_model.User(login, password)
             print(f"login {user}", flush=True)
             with database_controller.DatabaseClient() as db:
-                print(f"all users {db.get_all_users()}")
+                #print(f"all users {db.get_all_users()}")
                 if not db.check_user(user):
                     message = "There is no such user in db"
                     return render_template('message.html', message=message), 400
             session['user'] = user.cookie
             redis_controller.add_to_store(login, session['user'])
-            return redirect(url_for('upload_text'))
+            return redirect(url_for('file_listing'))
         except ValueError:
             message= "Incorrect username"
             return render_template('message.html', message=message), 403
@@ -147,7 +151,7 @@ def file_listing():
         files = listdir_fileclass(offset, limit)
     else:
         files = listdir_fileclass_by_user(offset, limit, username)
-    print(f"files {[x.filename for x in files]}")
+    #print(f"files {[x.filename for x in files]}")
     return render_template('uploads.html', files=files)
 
 if __name__ == "__main__":

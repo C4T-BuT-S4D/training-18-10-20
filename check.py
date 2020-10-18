@@ -9,6 +9,7 @@ import string
 import subprocess
 import time
 import traceback
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from pathlib import Path
@@ -21,7 +22,7 @@ from dockerfile_parse import DockerfileParser
 BASE_DIR = Path(__file__).resolve().absolute().parent
 SERVICES_PATH = BASE_DIR / 'services'
 CHECKERS_PATH = BASE_DIR / 'checkers'
-MAX_THREADS = int(os.getenv('MAX_THREADS', default=4 * os.cpu_count()))
+MAX_THREADS = int(os.getenv('MAX_THREADS', default=2 * os.cpu_count()))
 RUNS = int(os.getenv('RUNS', default=10))
 HOST = os.getenv('HOST', default='127.0.0.1')
 OUT_LOCK = Lock()
@@ -48,7 +49,7 @@ DATABASES = [
 PROXIES = ['nginx', 'envoy']
 CLEANERS = ['dedcleaner']
 
-VALIDATE_DIRS = ['checkers', 'services', 'internal']
+VALIDATE_DIRS = ['checkers', 'services', 'internal', 'sploits']
 
 
 class ColorType(Enum):
@@ -213,7 +214,7 @@ class Service(BaseValidator):
 
     def up(self):
         self._log('starting')
-        self._run_dc('up', '--build', '-_dir')
+        self._run_dc('up', '--build', '-d')
 
     def logs(self):
         self._log('printing logs')
@@ -289,30 +290,30 @@ class StructureValidator(BaseValidator):
             services = []
             databases = []
             proxies = []
-            dependencies = {}
+            dependencies = defaultdict(list)
 
-            for container in dc['services']:
+            for container, container_conf in dc['services'].items():
                 for opt in CONTAINER_REQUIRED_OPTIONS:
                     self._error(
-                        opt in dc['services'][container],
+                        opt in container_conf,
                         f'required option {opt} not in {path} for container {container}',
                     )
 
-                for opt in dc['services'][container]:
+                for opt in container_conf:
                     self._error(
                         opt in CONTAINER_ALLOWED_OPTIONS,
                         f'option {opt} in {path} is not allowed for container {container}',
                     )
 
                 if self._error(
-                        'image' in container and 'build' in container,
+                        'image' not in container_conf or 'build' not in container_conf,
                         f'both image and build options in {path} for container {container}'):
                     continue
 
-                if 'image' in dc['services'][container]:
-                    image = dc['services'][container]['image']
+                if 'image' in container_conf:
+                    image = container_conf['image']
                 else:
-                    build = dc['services'][container]['build']
+                    build = container_conf['build']
                     if isinstance(build, str):
                         dockerfile = f.parent / build / 'Dockerfile'
                     else:
@@ -322,14 +323,12 @@ class StructureValidator(BaseValidator):
                         else:
                             dockerfile = f.parent / context / 'Dockerfile'
 
-                    dfp = DockerfileParser()
-                    dfp.content = dockerfile.read_text()
-                    image = dfp.baseimage
+                    with dockerfile.open() as file:
+                        dfp = DockerfileParser(fileobj=file)
+                        image = dfp.baseimage
 
-                if 'depends_on' in dc['services'][container]:
-                    for dependency in dc['services'][container]:
-                        if container not in dependencies:
-                            dependencies[container] = []
+                if 'depends_on' in container_conf:
+                    for dependency in container_conf['depends_on']:
                         dependencies[container].append(dependency)
 
                 is_service = True
@@ -351,11 +350,11 @@ class StructureValidator(BaseValidator):
                     services.append(container)
                     for opt in SERVICE_REQUIRED_OPTIONS:
                         self._warning(
-                            opt in dc['services'][container],
+                            opt in container_conf,
                             f'required option {opt} not in {path} for service {container}',
                         )
 
-                    for opt in dc['services'][container]:
+                    for opt in container_conf:
                         self._warning(
                             opt in SERVICE_ALLOWED_OPTIONS,
                             f'option {opt} in {path} is not allowed for service {container}',
@@ -413,6 +412,7 @@ def logs_services(_args):
 def validate_checkers(_args):
     for service in get_services():
         service.validate_checker()
+
 
 def validate_structure(_args):
     was_error = False

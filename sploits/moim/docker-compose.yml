@@ -1,7 +1,8 @@
-version: '2'
+version: '2.4'
 services:
   php_helper:
     build: php_helper
+    restart: on-failure
     ports:
       - "8001:80"
     environment:

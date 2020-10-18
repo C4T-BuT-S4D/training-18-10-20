@@ -33,6 +33,18 @@
                                 <div class="pages-right3"></div>
                                 <div class="pages-right4"></div>
                                 <div class="pages-right5"></div>
+
+                                <nav class="navbar navbar-default">
+                                    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                                        <ul class="nav navbar-nav">
+                                            <li ><a href="/login">Sign in</a></li>
+                                            <li ><a href="/register">Sign up</a></li>
+                                            <li ><a href="/uploads">Uploads</a></li>
+                                            <li ><a href="/upload">Upload text</a></li>
+                                            <li ><a href="/upload_by_link">Upload by link</a></li>
+                                        </ul>
+                                    </div>
+                                </nav>
                                 
     <div class="categories-block">
         <div class="container-fluid">
@@ -45,14 +57,9 @@
                         <div class="slide js-slide-hidden">
                             <ul class="list-unstyled">
                                                                     
-                                <form method="POST">
-                                        <label for="login", style="font-size:14px;">Имя пользователя:</label>
-                                        <input name="login",id="login">
-                                        <label for="password", style="font-size:14px;">Пароль:</label>
-                                        <input name="password",id="password">
-                                        <br><br>
-                                        <input type="submit" value="Войти" class="btn btn-default">
-                                </form>
+    {% for file in files %}
+    <div class="filenames">{{file.user}}: {{ file.filename }}</div>
+    {% endfor %}
                                                             </ul>
                         </div>
                     </div>

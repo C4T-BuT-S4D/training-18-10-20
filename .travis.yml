@@ -4,14 +4,14 @@ python:
   - "3.7"
 
 env:
-  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=10  SERVICE=not_twitter
+  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=10  SERVICE=doseo
   - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=10  SERVICE=sijang
   - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=10  SERVICE=moim
   - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=10  SERVICE=sumgyeojin
 
   - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=20  SERVICE=all
 
-  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=200  SERVICE=not_twitter
+  - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=200  SERVICE=doseo
   - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=200  SERVICE=sijang
   - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=200  SERVICE=moim
   - DOCKER_COMPOSE_VERSION=1.25.0 RUNS=200  SERVICE=sumgyeojin
@@ -33,12 +33,12 @@ install:
   - pip install -r requirements.txt
   - pip install -r checkers/requirements.txt
   - ./check.py list
+  - ./check.py validate
   - ./check.py up
   - docker-compose -f internal/sumgyeojin/raider/docker-compose.yml up --build -d
 
 before_script:
   - sleep 60
-  - ./check.py validate
 
 script:
   - ./check.py check

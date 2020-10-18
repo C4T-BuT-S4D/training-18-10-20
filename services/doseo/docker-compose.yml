@@ -1,0 +1,40 @@
+version: '2.4'
+
+services:
+  postgres:
+    image: postgres:11-alpine
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: on-failure
+
+  doseo:
+    build: .
+    volumes:
+      - ./uploads/:/services/doseo/uploads
+    restart: on-failure
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "3113:3113"
+    environment:
+      - REDIS_HOST=redis
+      - UPLOAD_FOLDER=/services/doseo/uploads
+
+  redis:
+    image: redis
+    restart: "always"
+
+  cleaner:
+    image: c4tbuts4d/dedcleaner:latest
+    restart: on-failure
+    volumes:
+      - ./uploads/:/uploads
+    environment:
+      - DELETE_AFTER=30m
+      - SLEEP=30m
+      - DIRS=/uploads

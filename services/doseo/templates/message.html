@@ -34,6 +34,18 @@
                                 <div class="pages-right4"></div>
                                 <div class="pages-right5"></div>
 
+                                <nav class="navbar navbar-default">
+                                    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                                        <ul class="nav navbar-nav">
+                                            <li ><a href="/login">Sign in</a></li>
+                                            <li ><a href="/register">Sign up</a></li>
+                                            <li ><a href="/uploads">Uploads</a></li>
+                                            <li ><a href="/upload">Upload text</a></li>
+                                            <li ><a href="/upload_by_link">Upload by link</a></li>
+                                        </ul>
+                                    </div>
+                                </nav>
+
     <div class="categories-block">
         <div class="container-fluid">
             <div class="row">
@@ -45,15 +57,7 @@
                         <div class="slide js-slide-hidden">
                             <ul class="list-unstyled">
 
-                                <form method="POST">
-                                        <label for="text", style="font-size:16px;">Загрузить фанфик по ссылке</label>
-                                        <br><br>
-                                        <textarea name="link" rows="1" cols="20">
-Ссылка на текстовой файл
-                                        </textarea>                             
-                                        <br><br>
-                                        <input type="submit" value="Сохранить фанфик на сервер" class="btn btn-default">
-                                </form>
+                                <div class="message">{{message}}</div>
                                                             </ul>
                         </div>
                     </div>
