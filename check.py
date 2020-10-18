@@ -131,6 +131,14 @@ class Checker(BaseValidator):
             f'invalid timeout: {self._timeout}',
         )
 
+    @property
+    def info(self):
+        return {
+            'vulns': self._vulns,
+            'timeout': self._timeout,
+            'attack_data': self._attack_data,
+        }
+
     def _run_command(self, command: List[str], env=None) -> Tuple[str, str]:
         cmd = ['timeout', str(self._timeout)] + command
 
@@ -146,7 +154,7 @@ class Checker(BaseValidator):
 
         self._log(f'time: {elapsed:.2f}s\nstdout:\n{out_s}\nstderr:\n{err_s}')
         self._fatal(
-            p.returncode != 124, 
+            p.returncode != 124,
             f'return code is 124, {ColorType.BOLD}timeout{ColorType.ENDC} probably',
         )
         self._fatal(p.returncode == 101, f'bad return code: {p.returncode}')
@@ -207,6 +215,10 @@ class Service(BaseValidator):
     @property
     def name(self):
         return self._name
+
+    @property
+    def checker_info(self):
+        return self._checker.info
 
     def _run_dc(self, *args):
         cmd = ['docker-compose', '-f', str(self._dc_path)] + list(args)
@@ -427,6 +439,27 @@ def validate_structure(_args):
             raise AssertionError
 
 
+def dump_tasks(_args):
+    result = {'tasks': []}
+    for service in get_services():
+        info = service.checker_info
+        checker_type = 'gevent'
+        if info['attack_data']:
+            checker_type += '_pfr'
+
+        result['tasks'].append({
+            'name': service.name,
+            'checker': f'{service.name}/checker.py',
+            'checker_timeout': info['timeout'],
+            'checker_type': checker_type,
+            'places': info['timeout'],
+            'puts': 1,
+            'gets': 1,
+        })
+
+    colored_log('\n' + yaml.safe_dump(result))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Validate checkers for A&D. '
@@ -469,6 +502,12 @@ if __name__ == '__main__':
         help='Run structure validation',
     )
     validate_parser.set_defaults(func=validate_structure)
+
+    dump_parser = subparsers.add_parser(
+        'dump_tasks',
+        help='Dump tasks in YAML for ForcAD',
+    )
+    dump_parser.set_defaults(func=dump_tasks)
 
     parsed = parser.parse_args()
     try:
