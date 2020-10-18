@@ -1,3 +1,8 @@
 checklib
 pydantic
 requests
+fixedint
+pwntools
+Faker
+gevent
+textract

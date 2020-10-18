@@ -1,6 +1,12 @@
-from random import randint, choices, choice, shuffle, seed
 from copy import copy
-from math import copysign
+from random import randint, choices, choice, shuffle
+
+from fixedint import MutableInt64
+
+def copysign(a, b):
+    if b == 0:
+        return 0
+    return abs(a) * b // abs(b)
 
 def generate_number(registers, register, temp_register, target_value):
     registers = copy(registers)
@@ -14,7 +20,7 @@ def generate_number(registers, register, temp_register, target_value):
             to = choice([register, temp_register])
             fr = choice([register, temp_register])
             code += f"{op}{to}{fr}"
-            registers[to] = registers[fr]
+            registers[to] = MutableInt64(int(registers[fr]))
         elif op == 'i':
             tg = choice([register, temp_register])
             code += f"{op}{tg}"
@@ -45,7 +51,7 @@ def generate_number(registers, register, temp_register, target_value):
                 code += f"i{fr}"
                 registers[fr] += 1
             code += f"{op}{to}{fr}"
-            registers[to] = int(copysign(abs(registers[to]) // abs(registers[fr]), registers[to] * registers[fr]))
+            registers[to] = MutableInt64(copysign(abs(int(registers[to])) // abs(int(registers[fr])), int(registers[to]) * int(registers[fr])))
         elif op == '&':
             to = choice([register, temp_register])
             fr = choice([register, temp_register])
@@ -68,13 +74,14 @@ def generate_number(registers, register, temp_register, target_value):
 
     if abs(registers[register] - target_value) > 300:
         code += f"m{register}{temp_register}"
-        registers[register] = registers[temp_register]
+        registers[register] = MutableInt64(int(registers[temp_register]))
         if registers[temp_register] == 0:
             code += f"i{register}i{temp_register}"
             registers[register] += 1
             registers[temp_register] += 1
         code += f"/{register}{temp_register}"
-        registers[register] = int(copysign(abs(registers[register]) // abs(registers[temp_register]), registers[register] * registers[temp_register]))
+        registers[register] = MutableInt64(copysign(abs(int(registers[register])) // abs(int(registers[temp_register])),
+                                           int(registers[register]) * int(registers[temp_register])))
 
     while registers[register] < target_value:
         code += f"i{register}"
@@ -86,11 +93,12 @@ def generate_number(registers, register, temp_register, target_value):
 
     return registers, code
 
+
 def generate_string(registers, register, temp_register, target_string, use_temp=True):
     code = ""
     for c in target_string:
         i_register = choice(['r', 'j', 'q', 'l'])
-        i_register_temp = choice(list(set(['r', 'j', 'q', 'l']) - set([i_register])))
+        i_register_temp = choice(list({'r', 'j', 'q', 'l'} - {i_register}))
         registers, ca = generate_number(registers, i_register, i_register_temp, ord(c))
         code += ca
         if not use_temp or randint(0, 1) == 0:
@@ -103,6 +111,7 @@ def generate_string(registers, register, temp_register, target_string, use_temp=
             registers[register] = registers[temp_register]
 
     return registers, code
+
 
 def generate_frames_from_string(registers, register1, register2, target_string):
     l = len(target_string) // 2
@@ -119,6 +128,7 @@ def generate_frames_from_string(registers, register1, register2, target_string):
 
     return registers, code
 
+
 def generate_write_to_file(registers, target_filename, target_string):
     code = ""
 
@@ -132,12 +142,12 @@ def generate_write_to_file(registers, target_filename, target_string):
     registers[registers_order[1]] = registers[registers_order[2]]
 
     i_register = choice(['r', 'j', 'q', 'l'])
-    i_register_temp = choice(list(set(['r', 'j', 'q', 'l']) - set([i_register])))
+    i_register_temp = choice(list({'r', 'j', 'q', 'l'} - {i_register}))
     registers, ca = generate_number(registers, i_register, i_register_temp, 0)
     code += ca
 
-    i_register2 = choice(list(set(['r', 'j', 'q', 'l']) - set([i_register, i_register_temp])))
-    i_register_temp2 = choice(list(set(['r', 'j', 'q', 'l']) - set([i_register, i_register_temp, i_register2])))
+    i_register2 = choice(list({'r', 'j', 'q', 'l'} - {i_register, i_register_temp}))
+    i_register_temp2 = choice(list({'r', 'j', 'q', 'l'} - {i_register, i_register_temp, i_register2}))
     registers, ca = generate_number(registers, i_register2, i_register_temp2, 1)
     code += ca
 
@@ -153,6 +163,7 @@ def generate_write_to_file(registers, target_filename, target_string):
 
     return registers, code
 
+
 def generate_read_from_file(registers, target_filename, target_cnt):
     code = ""
 
@@ -166,12 +177,12 @@ def generate_read_from_file(registers, target_filename, target_cnt):
     registers[registers_order[1]] = registers[registers_order[2]]
 
     i_register = choice(['r', 'j', 'q', 'l'])
-    i_register_temp = choice(list(set(['r', 'j', 'q', 'l']) - set([i_register])))
+    i_register_temp = choice(list({'r', 'j', 'q', 'l'} - {i_register}))
     registers, ca = generate_number(registers, i_register, i_register_temp, 0)
     code += ca
 
-    i_register2 = choice(list(set(['r', 'j', 'q', 'l']) - set([i_register, i_register_temp])))
-    i_register_temp2 = choice(list(set(['r', 'j', 'q', 'l']) - set([i_register, i_register_temp, i_register2])))
+    i_register2 = choice(list({'r', 'j', 'q', 'l'} - {i_register, i_register_temp}))
+    i_register_temp2 = choice(list({'r', 'j', 'q', 'l'} - {i_register, i_register_temp, i_register2}))
     registers, ca = generate_number(registers, i_register2, i_register_temp2, 1)
     code += ca
 
@@ -187,24 +198,26 @@ def generate_read_from_file(registers, target_filename, target_cnt):
 
     return registers, code
 
+
 def write_to_file(filename, string):
     registers = {
-        'r': 0,
-        'j': 0,
-        'q': 0,
-        'l': 0,
+        'r': MutableInt64(0),
+        'j': MutableInt64(0),
+        'q': MutableInt64(0),
+        'l': MutableInt64(0),
         'o': '',
         't': '',
         'd': ''
     }
     return generate_write_to_file(registers, filename, string)[1]
 
+
 def read_from_file(filename, cnt):
     registers = {
-        'r': 0,
-        'j': 0,
-        'q': 0,
-        'l': 0,
+        'r': MutableInt64(0),
+        'j': MutableInt64(0),
+        'q': MutableInt64(0),
+        'l': MutableInt64(0),
         'o': '',
         't': '',
         'd': ''

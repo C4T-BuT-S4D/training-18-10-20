@@ -8,3 +8,5 @@ services:
     cpus: 0.25
     ports:
       - 9090:8080
+    volumes:
+      - ./storage:/storage

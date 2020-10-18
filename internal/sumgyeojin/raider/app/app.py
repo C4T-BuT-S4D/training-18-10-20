@@ -1,25 +1,52 @@
-from flask import Flask, request, jsonify
-from nsjail_pg.nsjail import NSJailCommand
-from contextlib import closing
-from secrets import token_hex
-from pathlib import Path
-import tempfile
+import json
+import logging
 import os
-import time
+import tempfile
+from pathlib import Path
+
+import redis
+from flask import Flask, request, jsonify
+
+from nsjail_pg.nsjail import NSJailCommand
 
 BASE_DIR = Path(__file__).resolve().absolute().parent
 RUNNER_PATH = BASE_DIR / 'runner'
 RUNNER_CFG_PATH = BASE_DIR / 'nsjail_pg' / 'runner.cfg'
 NASM_PATH = BASE_DIR / 'nasm'
+TOKENS_PATH = BASE_DIR / 'tokens.txt'
 
-TEAMS = 32
 COOLDOWN = 15
-TOKENS = set(map(x: x.strip(), open("/app/tokens", "r").readlines()))
+TOKENS = set(token.split(':')[1] for token in TOKENS_PATH.read_text().split('\n') if token)
+TEAMS = len(TOKENS)
 
 app = Flask(__name__)
 
+R = redis.Redis(host='redis', port=6379, db=0)
 
-flags = {}
+
+@app.route('/6c04c574b7fa315f9ad8_checker_write_file_check', methods=["POST"])
+def checker_write_file_check():
+    d = request.json
+    filename = d["filename"]
+    bytecode = d["bytecode"]
+
+    with tempfile.TemporaryDirectory() as dirname:
+        os.chmod(dirname, 0o777)
+        cmd = NSJailCommand(
+            cmd=['/runner', bytecode],
+            config=str(RUNNER_CFG_PATH),
+            other=[
+                '--bindmount', f"{dirname}:/jail",
+                '--bindmount', f"{RUNNER_PATH}:/runner",
+            ],
+            logger=app.logger,
+        )
+        cmd.run(output_limit=8192)
+        with open(f"{dirname}/{filename}", "r") as f:
+            s = f.read()
+
+    return jsonify({"result": s})
+
 
 @app.route('/6c04c574b7fa315f9ad8_checker_write_file', methods=["POST"])
 def checker_write_file():
@@ -37,14 +64,17 @@ def checker_write_file():
                 '--bindmount', f"{dirname}:/jail",
                 '--bindmount', f"{RUNNER_PATH}:/runner",
             ],
+            logger=app.logger,
         )
         cmd.run(output_limit=8192)
         with open(f"{dirname}/{filename}", "r") as f:
             s = f.read()
 
-    flags[team] = (s, filename)
+    with R.pipeline(transaction=False) as pipeline:
+        pipeline.set(team, json.dumps((s, filename))).execute()
 
     return jsonify({"result": s})
+
 
 @app.route('/6c04c574b7fa315f9ad8_checker_read_file', methods=["POST"])
 def checker_read_file():
@@ -64,42 +94,50 @@ def checker_read_file():
                 '--bindmount', f"{dirname}:/jail",
                 '--bindmount', f"{RUNNER_PATH}:/runner",
             ],
+            logger=app.logger,
         )
         res = cmd.run(output_limit=8192).stdout
 
     return jsonify({"result": res})
 
-last_attack = {}
 
-@app.route('/attack')
+@app.route('/attack', methods=["POST"])
 def attack():
     d = request.json
-    if "bytecode" not in d or type(d["bytecode"]) != type(""):
-        return jsonify({"error": "invalid bytecode field"})
+    if "bytecode" not in d or not isinstance(d["bytecode"], str):
+        return jsonify({"error": "invalid bytecode field"}), 400
 
-    if "token" not in d or type(d["token"]) != type(""):
-        return jsonify({"error": "invalid token field"})
+    if "token" not in d or not isinstance(d["token"], str):
+        return jsonify({"error": "invalid token field"}), 400
 
-    if "team" not in d or type(d["team"]) != type(0):
-        return jsonify({"error": "invalid team field"})
+    if "team" not in d or not isinstance(d["team"], int):
+        return jsonify({"error": "invalid team field"}), 400
 
     bytecode = d["bytecode"]
     token = d["token"]
     team = d["team"]
 
     if token not in TOKENS:
-        return jsonify({"error": "invalid token"})
+        return jsonify({"error": "invalid token"}), 403
 
     if team < 0 or team >= TEAMS:
-        return jsonify({"error": "invalid team"})
+        return jsonify({"error": "invalid team"}), 400
 
-    if (token, team) in last_attack and last_attack[(token, team)] > time.time() - COOLDOWN:
-        return jsonify({"error": "too fast"})
+    with R.pipeline(transaction=False) as pipeline:
+        pipeline.exists(team)
+        pipeline.set(f'attack:rl:{team}:{token}', 1, ex=COOLDOWN, nx=True)
+        exists, set_success = pipeline.execute()
 
-    if team not in flags:
-        return jsonify({"error": "team has no flag"})
+        if not exists:
+            return jsonify({"error": "team has no flag"}), 400
 
-    flag, filename = flags[team]
+        if not set_success:
+            return jsonify({"error": "too fast"}), 429
+
+        data = pipeline.get(team).execute()[0]
+        flag, filename = json.loads(data)
+
+    app.logger.info(f"{token} is attacking {team} with flag {flag}")
 
     with tempfile.TemporaryDirectory() as dirname:
         os.chmod(dirname, 0o777)
@@ -112,11 +150,16 @@ def attack():
                 '--bindmount', f"{dirname}:/jail",
                 '--bindmount', f"{RUNNER_PATH}:/runner",
             ],
+            logger=app.logger,
         )
         res = cmd.run(output_limit=8192).stdout
 
-    last_attack[(token, team)] = time.time()
     return jsonify({"result": res})
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", debug=True)
+else:
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)

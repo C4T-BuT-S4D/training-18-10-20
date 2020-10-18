@@ -1,9 +1,10 @@
-import requests
 import os
+
 from checklib import *
 
 PORT = 9090
-RAIDER = "http://127.0.0.1:5000"
+RAIDER = os.getenv('RAIDER', default="http://127.0.0.1:5000")
+
 
 class CheckMachine:
     @property
@@ -36,8 +37,8 @@ class CheckMachine:
 
         return d["result"]
 
-    def run_write_to_file(self, s, bc, filename, string, status=Status.MUMBLE):
-        r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_write_file", json={
+    def run_write_to_file(self, s, bc, filename, string, status=Status.MUMBLE, suffix=""):
+        r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_write_file{suffix}", json={
             "filename": filename,
             "bytecode": bc,
             "team": int(self.c.host.split('.')[-2])
@@ -45,7 +46,7 @@ class CheckMachine:
 
         d = self.c.get_json(r, "Can't run vm", status=status)
         self.c.assert_in("result", d, "Can't run vm", status=status)
-        self.c.assert_eq(d["result"], string, "Invalid vm result", status=status)
+        self.c.assert_eq(d["result"], string, "Invalid vm result on write", status=status)
 
     def run_read_from_file(self, s, bc, filename, string, status=Status.MUMBLE):
         r = s.post(f"{RAIDER}/6c04c574b7fa315f9ad8_checker_read_file", json={
@@ -54,6 +55,6 @@ class CheckMachine:
             "string": string
         })
 
-        d = self.c.get_json(r, "Can't run vm", status=status)
+        d = self.c.get_json(r, "Can't run vm on", status=status)
         self.c.assert_in("result", d, "Can't run vm", status=status)
-        self.c.assert_eq(d["result"], string, "Invalid vm result", status=status)
+        self.c.assert_eq(d["result"], string, "Invalid vm result on read", status=status)

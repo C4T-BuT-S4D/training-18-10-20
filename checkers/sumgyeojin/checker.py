@@ -10,11 +10,11 @@ from checklib import *
 from sumgyeojin_lib import CheckMachine
 from generate_bytecode import write_to_file, read_from_file
 
+
 class Checker(BaseChecker):
+    timeout = 15
+
     def __init__(self, *args, **kwargs):
-        uses_attack_data = False
-        timeout = 15
-        vulns = 1
         super(Checker, self).__init__(*args, **kwargs)
         self.mch = CheckMachine(self)
 
@@ -32,7 +32,7 @@ class Checker(BaseChecker):
         bc = write_to_file(f"/jail/{flag_filename}", rs)
         vmid = self.mch.create_vm(s, bc)
         bc = self.mch.get_vm(s, vmid)
-        self.mch.run_write_to_file(s, bc, flag_filename, rs)
+        self.mch.run_write_to_file(s, bc, flag_filename, rs, suffix="_check")
 
         bc = read_from_file(f"/jail/{flag_filename}", len(rs))
         vmid = self.mch.create_vm(s, bc)
@@ -63,6 +63,7 @@ class Checker(BaseChecker):
         self.mch.run_read_from_file(s, bc, flag_filename, flag, Status.CORRUPT)
 
         self.cquit(Status.OK)
+
 
 if __name__ == '__main__':
     c = Checker(sys.argv[2])

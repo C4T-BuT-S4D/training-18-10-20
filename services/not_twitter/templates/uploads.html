@@ -1,0 +1,67 @@
+<html>
+<meta charset='utf-8'>
+<link rel="stylesheet" href="{{ url_for('static', filename='original.css') }}">
+<body>
+    <div id="wrapper">
+        <div class="container">
+            <div class="row row-main">
+                                            <div class="col-lg-2"></div>
+                
+                <div class="col-lg-16 main-container">
+                    <div class="w1">
+    
+                        <div class="book-container">
+                            <div class="book-stiches-top hidden-xs"></div>
+                            <div class="book-stiches-left hidden-xs"></div>
+                            <div class="book-stiches-right hidden-xs"></div>
+                            <div class="book-stiches-bottom hidden-xs"></div>
+    
+                            <div class="book-corner-left-top hidden-xs"></div>
+                            <div class="book-corner-right-top hidden-xs"></div>
+                            <div class="book-corner-right-bottom hidden-xs"></div>
+                            <div class="book-corner-left-bottom hidden-xs"></div>
+
+                            <div class="book-inner">
+                            
+                                <div class="pages-left1"></div>
+                                <div class="pages-left2"></div>
+                                <div class="pages-left3"></div>
+                                <div class="pages-left4"></div>
+                                <div class="pages-left5"></div>
+                                <div class="pages-right1"></div>
+                                <div class="pages-right2"></div>
+                                <div class="pages-right3"></div>
+                                <div class="pages-right4"></div>
+                                <div class="pages-right5"></div>
+                                
+    <div class="categories-block">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-lg-4 skip">
+                    <div class="categories-list same">
+                        <div class="header-b">
+                            <strong class="logo hidden-xs"><a href="../"><img src="/static/logo.svg" alt="Книга Фанфиков"></a></strong>
+                        </div>
+                        <div class="slide js-slide-hidden">
+                            <ul class="list-unstyled">
+                                                                    
+    {% for file in files %}
+    <div class="filenames">{{file.user}}: {{ file.filename }}</div>
+    {% endfor %}
+                                                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
