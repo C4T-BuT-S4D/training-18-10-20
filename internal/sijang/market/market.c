@@ -144,9 +144,13 @@ void* pthread_routine( void *args )
 			if ( nbytes <= 0 )
 			{
 				nbytes = recv( client_fd, second_packet, MARKET_ITEM_SIZE, 0 );
-				printf( "[-] Empty data from client!" );
-				pthread_mutex_unlock( &market_mutex );
-				pthread_exit( NULL );
+			
+				if ( nbytes <= 0 )
+				{
+					printf( "[-] Empty data from client!" );
+					pthread_mutex_unlock( &market_mutex );
+					pthread_exit( NULL );
+				}
 			}
 
 			proceed_packet( cmd, second_packet, client_fd );

@@ -538,7 +538,7 @@ enum MARKET_CODES get_items_from_server( int page_id, page_item** page )
 
 	while ( ret_code == MARKET_BUSY )
 	{
-		printf( "ret_code = busy, packet = %s\n", packet );
+		//printf( "ret_code = busy, packet = %s\n", packet );
 		ret_code = request_to_access( packet, size, market_fd );
 		usleep( SLEEP_TIME );
 
@@ -987,6 +987,12 @@ void sell_weapon( void )
 					sanitize( desc );
 					wp->description = desc;
 				}
+				else
+				{
+					char* tmp = (char*) alloc_mem( DESCRIPTION_SIZE );
+					strncpy( tmp, "None", 4 );
+					wp->description = tmp;
+				}
 
 				printf( "[+] Archive your weapon?[y\\n]: " );
 				read_buf( choice, 3 );
@@ -995,6 +1001,9 @@ void sell_weapon( void )
 					add_to_market_thr( wp, market_cost, user_cost, 1 );
 				else
 					add_to_market_thr( wp, market_cost, user_cost, 0 );
+				
+				fflush( stdin );
+				fflush( stdout );
 			}
 		}
 	}
@@ -1401,6 +1410,7 @@ void* add_to_market_hndl( void* args )
 
 	if ( market_fd == -1 )
 	{
+		// try to connect another
 		if ( l_args->wp->description != NULL )
 		{
 			free_mem( l_args->wp->description );	
@@ -1413,7 +1423,9 @@ void* add_to_market_hndl( void* args )
 
 		free_mem( l_args->wp );
 
-		puts( "[-] Item is not added to market!" );
+		puts( "[-] Can't connect to maket in item adding!" );
+		fflush( stdin );
+		fflush( stdout );
 		free_mem( args );
 
 		pthread_exit( 0 );
@@ -1487,8 +1499,15 @@ void* add_to_market_hndl( void* args )
 		remove_weapon( name, quality );
 		
 		puts( "[+] Item is added to market!" );
+		
+		fflush( stdin );
+		fflush( stdout );
+		
 		printf( "[+] You can view your item by token: %u\n", item_token );
-
+		
+		fflush( stdin );
+		fflush( stdout );
+		
 		if ( l_args->wp->description != NULL )
 		{
 			free_mem( l_args->wp->description );	
@@ -1629,7 +1648,12 @@ int send_req( int fd, char* packet )
 	}
 
 	char* recv_packet = (char*) alloc_mem( DEFUALT_BUF_SIZE );
-	recv( fd, recv_packet, DEFUALT_BUF_SIZE, 0 );
+	nbytes = recv( fd, recv_packet, DEFUALT_BUF_SIZE, 0 );
+
+	while ( nbytes == 0 )
+	{
+		nbytes = recv( fd, recv_packet, DEFUALT_BUF_SIZE, 0 );
+	}
 
 	#ifdef DEBUG
 		printf( "send_req, 1551, recv_packet = %s\n", recv_packet );

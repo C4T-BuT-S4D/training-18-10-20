@@ -33,8 +33,8 @@ typedef unsigned char BYTE;
 #define PAGE_SIZE 10
 #define WORD_MAX 0xffff
 #define MARKET_PORT 9999
-#define SLEEP_TIME 500000
-#define SLEEP_TRIES 5
+#define SLEEP_TIME 200000
+#define SLEEP_TRIES 7
 #define RECV_TIMEOUT 2
 
 #define FALSE 0 
