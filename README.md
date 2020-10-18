@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/xmikasax/training-XX-YY-ZZZZ.svg?token=MNcdvgmffxEhzUa3dbLJ&branch=master)](https://travis-ci.com/xmikasax/training-XX-YY-ZZZZ)
+[![Build Status](https://travis-ci.com/C4T-BuT-S4D/training-18-10-2020.svg?branch=master)](https://travis-ci.com/C4T-BuT-S4D/training-18-10-2020)
 
 # Attack-Defence training by C4T BuT S4D
 Sources of services, checkers and sploits from 18th October 2020 training.
