@@ -28,7 +28,7 @@ services:
     ports:
       - "8000:80"
   db:
-    image: postgres:10.8-alpine
+    image: postgres:12.2
     restart: on-failure
     volumes:
       - ./data/db:/var/lib/postgresql/data 
