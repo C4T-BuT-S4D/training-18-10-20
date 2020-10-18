@@ -5,8 +5,6 @@ Sources of services, checkers and sploits from 18th October 2020 training.
 
 ## Results
 
-###### TODO
-
 ![Top](scoreboard/top.png)
 
 [Full scoreboard](scoreboard/full.png)
@@ -16,12 +14,10 @@ Sources of services, checkers and sploits from 18th October 2020 training.
 
 | Service | Lang | Checker | Sploits | Author |
 |--------|------|-------|---------|-------|
-| **[changeme](services/changeme/)** | changeme | [Checker](checkers/changeme/) | [Sploits](sploits/changeme/) | [@changeme](https://github.com/changeme) |
-
-
-## Image
-
-###### TODO
+| **[doseo](services/doseo/)** | doseo | [Checker](checkers/doseo/) | [Sploits](sploits/doseo/) | [@amoniaka-knabino](https://github.com/amoniaka-knabino) |
+| **[moim](services/moim/)** | moim | [Checker](checkers/moim/) | [Sploits](sploits/moim/) | [@jnovikov](https://github.com/jnovikov) |
+| **[sijang](services/sijang/)** | sijang | [Checker](checkers/sijang/) | [Sploits](sploits/sijang/) | [@revervand](https://github.com/revervand) |
+| **[sumgyeojin](services/sumgyeojin/)** | sumgyeojin | [Checker](checkers/sumgyeojin/) | [Sploits](sploits/sumgyeojin/) | [@xmikasax](https://github.com/xmikasax) |
 
 
 ## Infrastructure
